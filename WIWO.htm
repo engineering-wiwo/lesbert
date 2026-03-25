@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrafficFlow - PH Traffic Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --bg-secondary: #111827;
+      --fg: #f1f5f9;
+      --muted: #64748b;
+      --accent: #ff6b6b;
+      --accent-glow: rgba(255, 107, 107, 0.3);
+      --card: #1a2234;
+      --border: #2d3a4f;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      overflow-x: hidden;
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Backgrounds & Effects */
+    .hero-bg {
+      position: absolute; inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 107, 107, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(59, 130, 246, 0.1), transparent),
+        linear-gradient(180deg, var(--bg) 0%, #0f172a 100%);
+      z-index: -2;
+    }
+    .grid-overlay {
+      position: absolute; inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 107, 107, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 107, 107, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      z-index: -1;
+      mask-image: linear-gradient(180deg, black 0%, transparent 70%);
+    }
+    .traffic-lines {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
+      overflow: hidden; z-index: -1;
+    }
+    .traffic-line {
+      position: absolute; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: trafficFlow 3s linear infinite; opacity: 0.3;
+    }
+    @keyframes trafficFlow { 0% { transform: translateX(-100%); } 100% { transform: translateX(100vw); } }
+
+    /* Animations */
+    .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .stagger-1 { transition-delay: 0.1s; } .stagger-2 { transition-delay: 0.2s; } .stagger-3 { transition-delay: 0.3s; }
+    .stagger-4 { transition-delay: 0.4s; } .stagger-5 { transition-delay: 0.5s; }
+
+    /* Components */
+    .btn-primary {
+      background: var(--accent); color: white; padding: 14px 32px; border-radius: 8px;
+      font-weight: 600; border: none; cursor: pointer; transition: all 0.3s ease;
+      position: relative; overflow: hidden;
+    }
+    .btn-primary::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 40px var(--accent-glow); }
+    .btn-primary:hover::before { opacity: 1; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); }
+
+    .stat-number {
+      font-size: 3rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .vehicle-card {
+      background: linear-gradient(135deg, var(--card) 0%, rgba(26, 34, 52, 0.5) 100%);
+      border: 1px solid var(--border); border-radius: 12px; overflow: hidden; cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .vehicle-card:hover { border-color: var(--accent); transform: scale(1.02); }
+    .vehicle-card.active { border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); }
+
+    /* Philippine License Plate Styles */
+    .license-plate {
+      border-radius: 8px; padding: 16px 20px;
+      font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700;
+      letter-spacing: 1px; position: relative; overflow: hidden; text-align: center;
+      border: 3px solid rgba(0,0,0,0.1); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: all 0.5s ease;
+    }
+    /* White Plates for Private and Trucks */
+    .plate-private { background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); color: #000000; border-color: #cbd5e1; }
+    /* Yellow Plates for PUJ */
+    .plate-public { background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%); color: #000000; border-color: #f59e0b; }
+    .plate-motorcycle { background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); color: #000000; border-color: #cbd5e1; font-size: 0.9rem; padding: 10px 12px; }
+    /* Red Plates for Special */
+    .plate-special { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #ffffff; border-color: #b91c1c; }
+    
+    .license-plate::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: plateShine 4s infinite;
+    }
+    @keyframes plateShine { 0%, 100% { left: -100%; } 50% { left: 100%; } }
+
+    .progress-bar { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 1s ease-out; }
+
+    .tab-btn {
+      padding: 12px 24px; background: transparent; border: 1px solid var(--border);
+      color: var(--muted); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
+      font-family: inherit; font-weight: 500;
+    }
+    .tab-btn:hover { border-color: var(--accent); color: var(--fg); }
+    .tab-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* Detection Card Styles */
+    .detection-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; transition: all 0.3s ease; cursor: pointer;
+    }
+    .detection-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .detection-card img {
+      width: 100%; height: 160px; object-fit: cover;
+      border-bottom: 1px solid var(--border);
+      transition: transform 0.5s ease;
+    }
+    .detection-card:hover img { transform: scale(1.05); }
+    
+    .type-badge {
+      padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+      text-transform: uppercase;
+    }
+    .type-private { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .type-public { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+    .type-motorcycle { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .type-truck { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+    .type-special { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    /* Dropdown Styles */
+    .filter-select {
+      appearance: none;
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: 10px 40px 10px 16px;
+      border-radius: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      transition: all 0.3s ease;
+    }
+    .filter-select:hover, .filter-select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+      opacity: 0; visibility: hidden; transition: all 0.3s ease;
+    }
+    .modal-backdrop.active { opacity: 1; visibility: visible; }
+    .modal-content {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      max-width: 900px; width: 95%; overflow: hidden; transform: scale(0.9);
+      transition: transform 0.3s ease; max-height: 90vh; display: flex; flex-direction: column;
+    }
+    .modal-backdrop.active .modal-content { transform: scale(1); }
+    .modal-img-container { position: relative; min-height: 300px; background: #000; }
+    .modal-img-container img { width: 100%; height: 100%; object-fit: contain; max-height: 50vh; }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .traffic-line, .license-plate::before, .status-dot { animation: none; transition: none; }
+      .reveal { opacity: 1; transform: none; }
+    }
+    @media (max-width: 768px) {
+      .stat-number { font-size: 2rem; }
+      .license-plate { font-size: 0.9rem; letter-spacing: 1px; padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-opacity-80" style="background: rgba(10, 14, 23, 0.9);">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-3">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect x="2" y="12" width="28" height="8" rx="2" stroke="var(--accent)" stroke-width="2"/>
+          <circle cx="8" cy="16" r="2" fill="var(--accent)"/>
+          <circle cx="16" cy="16" r="2" fill="var(--accent)"/>
+          <circle cx="24" cy="16" r="2" fill="var(--accent)"/>
+        </svg>
+        <span class="text-xl font-bold">TrafficFlow PH</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#deployment" class="text-muted hover:text-fg transition-colors" style="color: var(--muted);">Deployment</a>
+        <a href="#plates" class="text-muted hover:text-fg transition-colors" style="color: var(--muted);">Detections</a>
+        <a href="#vehicles" class="text-muted hover:text-fg transition-colors" style="color: var(--muted);">Vehicles</a>
+        <button class="btn-primary text-sm">Get Started</button>
+      </div>
+      <button id="mobileMenuBtn" class="md:hidden p-2" aria-label="Toggle menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative min-h-screen flex items-center pt-20">
+    <div class="hero-bg"></div>
+    <div class="grid-overlay"></div>
+    <div class="traffic-lines" aria-hidden="true">
+      <div class="traffic-line" style="width: 200px; top: 20%; animation-delay: 0s;"></div>
+      <div class="traffic-line" style="width: 150px; top: 40%; animation-delay: 0.5s;"></div>
+      <div class="traffic-line" style="width: 180px; top: 60%; animation-delay: 1s;"></div>
+    </div>
+    
+    <div class="max-w-7xl mx-auto px-6 py-20">
+      <div class="max-w-3xl">
+        <div class="reveal stagger-1 flex items-center gap-3 mb-6">
+          <span class="status-dot bg-green-500"></span>
+          <span class="font-mono text-sm" style="color: var(--muted);">LTO System Online • Metro Manila</span>
+        </div>
+        <h1 class="reveal stagger-2 text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+          Philippine Traffic
+          <span class="block" style="color: var(--accent);">Management System</span>
+        </h1>
+        <p class="reveal stagger-3 text-lg md:text-xl mb-8 max-w-xl" style="color: var(--muted);">
+          AI-powered traffic analysis with real-time vehicle classification, license plate recognition, and comprehensive deployment monitoring for Philippine cities.
+        </p>
+        <div class="reveal stagger-4 flex flex-wrap gap-4">
+          <button class="btn-primary">Request Demo</button>
+          <button class="btn-primary" style="background: transparent; border: 1px solid var(--border);">View Documentation</button>
+        </div>
+      </div>
+
+      <div class="reveal stagger-5 mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="card text-center"><div class="stat-number" data-target="8472">0</div><div class="text-sm mt-1" style="color: var(--muted);">Vehicles Today</div></div>
+        <div class="card text-center"><div class="stat-number" data-target="234">0</div><div class="text-sm mt-1" style="color: var(--muted);">Active Cameras</div></div>
+        <div class="card text-center"><div class="stat-number" data-target="17">0</div><div class="text-sm mt-1" style="color: var(--muted);">Cities Monitored</div></div>
+        <div class="card text-center"><div class="stat-number" data-target="98">0</div><div class="text-sm mt-1" style="color: var(--muted);">Accuracy %</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Deployment Section -->
+  <section id="deployment" class="py-24 relative">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="reveal text-center mb-16">
+        <span class="font-mono text-sm" style="color: var(--accent);">PROOF OF DEPLOYMENT</span>
+        <h2 class="text-3xl md:text-5xl font-bold mt-4">Live System Deployment</h2>
+        <p class="mt-4 max-w-2xl mx-auto" style="color: var(--muted);">Real-time monitoring of traffic management infrastructure across Metro Manila.</p>
+      </div>
+      <div class="grid lg:grid-cols-3 gap-6">
+        <div class="reveal lg:col-span-2 card p-0 overflow-hidden">
+          <div class="p-4 border-b" style="border-color: var(--border);">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold">Metro Manila Zone Overview</span>
+              <span class="flex items-center gap-2 text-sm"><span class="status-dot" style="background: var(--success);"></span>All Systems Operational</span>
+            </div>
+          </div>
+          <div class="relative h-80" id="mapContainer">
+            <svg viewBox="0 0 800 400" class="w-full h-full">
+              <rect x="0" y="0" width="800" height="400" fill="#0f172a"/>
+              <path d="M0,200 Q400,180 800,200" stroke="#1e293b" stroke-width="50" fill="none"/>
+              <path d="M0,200 Q400,180 800,200" stroke="#2d3a4f" stroke-width="2" stroke-dasharray="20,20" fill="none"/>
+              <g class="camera-marker" data-zone="CAM-001 Active">
+                <circle cx="300" cy="190" r="12" fill="var(--accent)" opacity="0.3"><animate attributeName="r" values="12;20;12" dur="2s" repeatCount="indefinite"/></circle>
+                <circle cx="300" cy="190" r="6" fill="var(--accent)"/>
+              </g>
+              <g class="camera-marker" data-zone="CAM-002 Active">
+                <circle cx="500" cy="205" r="12" fill="var(--success)" opacity="0.3"><animate attributeName="r" values="12;20;12" dur="2s" repeatCount="indefinite" begin="0.5s"/></circle>
+                <circle cx="500" cy="205" r="6" fill="var(--success)"/>
+              </g>
+              <g class="camera-marker" data-zone="CAM-003 Active">
+                <circle cx="650" cy="250" r="12" fill="var(--success)" opacity="0.3"><animate attributeName="r" values="12;20;12" dur="2s" repeatCount="indefinite" begin="1s"/></circle>
+                <circle cx="650" cy="250" r="6" fill="var(--success)"/>
+              </g>
+            </svg>
+            <div id="zoneTooltip" class="absolute hidden px-3 py-2 text-sm rounded-lg pointer-events-none" style="background: var(--card); border: 1px solid var(--border);"></div>
+          </div>
+        </div>
+        <div class="reveal space-y-4">
+          <div class="card">
+            <div class="flex items-center justify-between mb-3"><span class="font-semibold">CAM-001</span><span class="text-xs px-2 py-1 rounded" style="background: rgba(255, 107, 107, 0.2); color: var(--accent);">Heavy</span></div>
+            <div class="text-sm mb-2" style="color: var(--muted);">EDSA • Rush Hour</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 92%; background: var(--accent);"></div></div>
+          </div>
+          <div class="card">
+            <div class="flex items-center justify-between mb-3"><span class="font-semibold">CAM-002</span><span class="text-xs px-2 py-1 rounded" style="background: rgba(16, 185, 129, 0.2); color: var(--success);">Moderate</span></div>
+            <div class="text-sm mb-2" style="color: var(--muted);">Cubao • Normal</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 55%; background: var(--success);"></div></div>
+          </div>
+          <div class="card">
+            <div class="flex items-center justify-between mb-3"><span class="font-semibold">CAM-003</span><span class="text-xs px-2 py-1 rounded" style="background: rgba(16, 185, 129, 0.2); color: var(--success);">Light</span></div>
+            <div class="text-sm mb-2" style="color: var(--muted);">Taguig • Clear</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 30%; background: var(--success);"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECENT VEHICLE DETECTIONS Section -->
+  <section id="plates" class="py-24 relative" style="background: linear-gradient(180deg, transparent, rgba(255, 107, 107, 0.03), transparent);">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="reveal flex flex-col md:flex-row md:items-end md:justify-between mb-12 gap-4">
+        <div>
+            <span class="font-mono text-sm" style="color: var(--accent);">REAL-TIME MONITORING</span>
+            <h2 class="text-3xl md:text-5xl font-bold mt-4">Filter by Vehicle Type</h2>
+        </div>
+        
+        <!-- Dropdown Filter -->
+        <div class="flex items-center gap-3">
+            <label for="detectionFilter" class="text-sm" style="color: var(--muted);">Filter by Type:</label>
+            <select id="detectionFilter" class="filter-select">
+                <option value="all">All</option>
+                <option value="private">Private Car</option>
+                <option value="puj">PUJ</option>
+                <option value="motorcycle">Motorcycle</option>
+                <option value="truck">Truck</option>
+                <option value="special">Special Vehicle</option>
+            </select>
+        </div>
+      </div>
+
+      <!-- Recognition Demo Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" id="detectionGrid">
+        <!-- Populated by JS -->
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Vehicle Classification Section -->
+  <section id="vehicles" class="py-24 relative">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="reveal text-center mb-16">
+        <span class="font-mono text-sm" style="color: var(--accent);">AI CLASSIFICATION</span>
+        <h2 class="text-3xl md:text-5xl font-bold mt-4">Vehicle Type Detection</h2>
+        <p class="mt-4 max-w-2xl mx-auto" style="color: var(--muted);">Machine learning models trained on Philippine road conditions.</p>
+      </div>
+      <div class="reveal grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12" id="vehicleGrid"></div>
+      <div class="reveal grid md:grid-cols-2 gap-8">
+        <div class="card"><h3 class="font-semibold mb-6">Detection Accuracy by Type</h3><div class="space-y-4" id="accuracyStats"></div></div>
+        <div class="card">
+          <h3 class="font-semibold mb-6">Hourly Distribution</h3>
+          <div class="h-48 flex items-end justify-between gap-1" id="hourlyChart"></div>
+          <div class="flex justify-between text-xs mt-2" style="color: var(--muted);"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shared Modal -->
+  <div id="imageModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-img-container">
+        <img id="modalImage" src="" alt="Vehicle snapshot">
+        <button id="closeModal" class="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(0,0,0,0.5);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="text-xl font-bold" id="modalTitle">Vehicle Detection</h3>
+            <p class="text-sm mt-1" style="color: var(--muted);" id="modalLocation">Location</p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-sm font-mono shrink-0" style="background: var(--accent); color: white;" id="modalPlate">PLATE</span>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-4 text-center border-t pt-4" style="border-color: var(--border);">
+          <div><div class="text-xs" style="color: var(--muted);">Type</div><div class="font-semibold" id="modalType">Type</div></div>
+          <div><div class="text-xs" style="color: var(--muted);">Speed</div><div class="font-semibold" style="color: var(--success);" id="modalSpeed">40 km/h</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-12 border-t" style="border-color: var(--border);">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+            <rect x="2" y="12" width="28" height="8" rx="2" stroke="var(--accent)" stroke-width="2"/>
+            <circle cx="8" cy="16" r="2" fill="var(--accent)"/>
+            <circle cx="16" cy="16" r="2" fill="var(--accent)"/>
+            <circle cx="24" cy="16" r="2" fill="var(--accent)"/>
+          </svg>
+          <span class="font-semibold">TrafficFlow PH</span>
+        </div>
+        <div class="text-sm" style="color: var(--muted);">Philippine Intelligent Traffic Management System • 2024</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // --- DATA: USER PROVIDED IMAGES AND DETAILS ---
+    const vehicleDatabase = [
+      // Existing Private
+      {
+        id: 1,
+        plate: 'AT 2076',
+        type: 'private',
+        category: 'Private Car',
+        name: 'Private Car',
+        location: 'CAM-001',
+        url: 'https://z-cdn-media.chatglm.cn/files/79f54192-46c4-4078-a914-9aa30115a7e0.jpg?auth_key=1873285553-4f6031a5489c4836bf0f775e0b12646f-0-ed4ccc0ee317f6dc480cdf1acb02b529',
+        speed: '25 km/h'
+      },
+      {
+        id: 2,
+        plate: 'NAI 1062',
+        type: 'private',
+        category: 'Private Car',
+        name: 'Private Car',
+        location: 'CAM-002',
+        url: 'https://z-cdn-media.chatglm.cn/files/9da5bea2-33bb-43e5-a886-477d3702c434.jpg?auth_key=1873285553-294c0bfb95d0499a94cc79bd0859eed8-0-7c6a0b97a65bed0068dd6559b03a25c7',
+        speed: '30 km/h'
+      },
+      {
+        id: 3,
+        plate: 'DAS 2873',
+        type: 'private',
+        category: 'Private Car',
+        name: 'Private Car',
+        location: 'CAM-003',
+        url: 'https://z-cdn-media.chatglm.cn/files/83a4efd6-5fbf-484b-a6bd-58763366ceae.jpg?auth_key=1873285553-5b2fb34d6a7842d0b60c21cb7d11fae5-0-ac4b38c880b55f7bfffd78f321b1f886',
+        speed: '45 km/h'
+      },
+      {
+        id: 4,
+        plate: 'NDV 2181',
+        type: 'private',
+        category: 'Private Car',
+        name: 'Private Car',
+        location: 'CAM-001',
+        url: 'https://z-cdn-media.chatglm.cn/files/c138e62b-1097-4042-b57d-cbf2f752403b.jpg?auth_key=1873285553-81a22062dea44cbbb3f680f46d905333-0-22918cd3b04ff2ca2ac4f4c672a17cb5',
+        speed: '20 km/h'
+      },
+      // New Private (car5)
+      {
+        id: 101,
+        plate: 'TOR 841',
+        type: 'private',
+        category: 'Private Car',
+        name: 'Private Car',
+        location: 'CAM-001',
+        url: 'https://z-cdn-media.chatglm.cn/files/0db27544-6f78-41bd-b3ce-c35c98ec2927.jpeg?auth_key=1873295147-b36bbaf2e92b4fedac509b35de7fd601-0-f397ebdf6daed7e28fd05db645403d20',
+        speed: '15 km/h'
+      },
+      // Existing Motorcycles
+      {
+        id: 5,
+        plate: '731NSO',
+        type: 'motorcycle',
+        category: 'Motorcycle',
+        name: 'Motorcycle',
+        location: 'CAM-002',
+        url: 'https://z-cdn-media.chatglm.cn/files/312330eb-cd85-43d6-9f51-a8e1399adf4d.jpg?auth_key=1873285553-9d1c115379fa44a0a02098810bfc3d84-0-c8de8aa7fca332ff89b09d365b5c5f18',
+        speed: '50 km/h'
+      },
+      {
+        id: 6,
+        plate: '818UTQ',
+        type: 'motorcycle',
+        category: 'Motorcycle',
+        name: 'Motorcycle',
+        location: 'CAM-003',
+        url: 'https://z-cdn-media.chatglm.cn/files/ff9f8084-0272-4fa4-96b9-e53f61037629.jpg?auth_key=1873285553-0c2cb15dcdcf49da8c1bb53ba74982c0-0-4d2274f3d6163bd156b48cdb8586bf7e',
+        speed: '60 km/h'
+      },
+      {
+        id: 7,
+        plate: '787XFQ',
+        type: 'motorcycle',
+        category: 'Motorcycle',
+        name: 'Motorcycle',
+        location: 'CAM-001',
+        url: 'https://z-cdn-media.chatglm.cn/files/198aa85e-833c-44d9-9efe-496a92841957.jpg?auth_key=1873285553-cf94f0535a274508a7c10b82a7504a5e-0-31920decb5a815f2c68bf30144de1ce8',
+        speed: '45 km/h'
+      },
+      // UPDATED PUJ ENTRIES
+      {
+        id: 102,
+        plate: 'CKJ 233',
+        type: 'puj',
+        category: 'PUJ',
+        name: 'PUJ',
+        location: 'CAM-002',
+        url: 'https://z-cdn-media.chatglm.cn/files/31ad8c71-2cb0-49aa-bf23-ac01c3402ff8.jpeg?auth_key=1873299409-94ab2b5525ff4b169f4a8682eb63c95a-0-ffca60c7c9b5424af5ac327b6d97f012',
+        speed: '20 km/h'
+      },
+      {
+        id: 103,
+        plate: 'TVU 541',
+        type: 'puj',
+        category: 'PUJ',
+        name: 'PUJ',
+        location: 'CAM-003',
+        url: 'https://z-cdn-media.chatglm.cn/files/efeb00e5-7f50-47b9-8e13-5497d7b1edcc.jpeg?auth_key=1873299409-cd7788c48f9b4689a154631a241fd9d5-0-46b4803e9837ed3189f69ea605402614',
+        speed: '25 km/h'
+      },
+      {
+        id: 104,
+        plate: 'UVZ - 991',
+        type: 'puj',
+        category: 'PUJ',
+        name: 'PUJ',
+        location: 'CAM-001',
+        url: 'https://z-cdn-media.chatglm.cn/files/8c1afe65-51a7-4731-932f-6952c9bfab23.jpeg?auth_key=1873300039-286ffa36e1e1461ea20112de386c0110-0-95e5bbf922ea4ee522015c02f3701506',
+        speed: '30 km/h'
+      },
+      // Trucks
+      {
+        id: 202,
+        plate: 'KAN 6654',
+        type: 'truck',
+        category: 'Truck',
+        name: 'Truck',
+        location: 'CAM-002',
+        url: 'https://z-cdn-media.chatglm.cn/files/24d4e029-6605-4191-b996-3f993cd80e24.jpg?auth_key=1873295147-0c314c516dd7471a9e4c6829c704e309-0-d3ce2ed048592ec2d0ab393f12cbad3e',
+        speed: '35 km/h'
+      },
+      {
+        id: 203,
+        plate: 'MBE 3595',
+        type: 'truck',
+        category: 'Truck',
+        name: 'Truck',
+        location: 'CAM-003',
+        url: 'https://z-cdn-media.chatglm.cn/files/5add9078-effc-4397-8f1b-8333d0eda6d5.jpg?auth_key=1873295147-1a3f137594a644daa5336f599b9d0ab5-0-aca9ddaede430495a3569f669f698b40',
+        speed: '45 km/h'
+      },
+      {
+        id: 204,
+        plate: 'CCN 4132',
+        type: 'truck',
+        category: 'Truck',
+        name: 'Truck',
+        location: 'CAM-001',
+        url: 'https://z-cdn-media.chatglm.cn/files/c87e1f5a-8ca6-4b15-b61a-ee246eda4027.jpg?auth_key=1873295147-e7232641de1e4e8a938d0e873b3829ef-0-aea690ece927fa42cc460554ac2b97e3',
+        speed: '50 km/h'
+      },
+      // Special
+      {
+        id: 301,
+        plate: 'CBT 7523',
+        type: 'special',
+        category: 'Special Vehicle',
+        name: 'Special Vehicle',
+        location: 'CAM-001',
+        url: 'https://z-cdn-media.chatglm.cn/files/a6d43826-d9ef-44c4-8086-57233b5acd61.jpeg?auth_key=1873295147-d51fb146b3974ef6a6dd0e3c1b9c9a10-0-a3b6a38a89deea864e2aa9adf5083387',
+        speed: '60 km/h'
+      }
+    ];
+
+    const vehicleTypes = [
+      { id: 'private', name: 'Private Car', icon: 'M8 17h8M5 14h14l-1.5-5h-11L5 14zm0 0v3a1 1 0 001 1h1v-1h10v1h1a1 1 0 001-1v-3M7 14v-2M17 14v-2', count: 5, accuracy: 98.5 },
+      { id: 'motorcycle', name: 'Motorcycle', icon: 'M5 16a3 3 0 100-6 3 3 0 000 6zM19 16a3 3 0 100-6 3 3 0 000 6zM12 13h-2M14 13h2M12 13l2-4', count: 3, accuracy: 96.8 },
+      { id: 'puj', name: 'PUJ', icon: 'M4 15h16M4 15v-4a2 2 0 012-2h12a2 2 0 012 2v4M8 15v2M16 15v2M7 9V7M12 9V7M17 9V7', count: 3, accuracy: 97.1 },
+      { id: 'truck', name: 'Truck', icon: 'M4 15h16M4 15v-4a2 2 0 012-2h12a2 2 0 012 2v4M8 15v2M16 15v2M6 9V7h12v2', count: 3, accuracy: 98.9 },
+      { id: 'special', name: 'Special Vehicle', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5', count: 1, accuracy: 99.5 },
+    ];
+
+    const hourlyData = [12, 18, 8, 5, 3, 7, 25, 65, 120, 145, 132, 128, 115, 108, 112, 121, 138, 165, 142, 96, 72, 51, 34, 18];
+
+    // --- INIT ---
+    document.addEventListener('DOMContentLoaded', () => {
+      initRevealAnimations();
+      initCounters();
+      initModal();
+      initFilters(); // Initialize dropdown filter
+      renderLiveDetections('all'); // Initial render
+      renderVehicleGrid();
+      renderAccuracyStats();
+      renderHourlyChart();
+      initMapInteraction();
+    });
+
+    // --- UTILS ---
+    function initRevealAnimations() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
+
+    function initCounters() {
+      const counters = document.querySelectorAll('.stat-number[data-target]');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const el = entry.target;
+            const target = parseInt(el.dataset.target);
+            const duration = 2000;
+            const startTime = performance.now();
+            function update(currentTime) {
+              const elapsed = currentTime - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              const easeOut = 1 - Math.pow(1 - progress, 3);
+              el.textContent = Math.floor(target * easeOut).toLocaleString();
+              if (progress < 1) requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+            observer.unobserve(el);
+          }
+        });
+      }, { threshold: 0.5 });
+      counters.forEach(counter => observer.observe(counter));
+    }
+
+    // --- MODAL SYSTEM ---
+    function initModal() {
+      const modal = document.getElementById('imageModal');
+      const closeModalBtn = document.getElementById('closeModal');
+
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => modal.classList.remove('active'));
+      }
+      
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.classList.remove('active');
+        });
+      }
+    }
+
+    function openVehicleModal(details) {
+      const modal = document.getElementById('imageModal');
+      
+      document.getElementById('modalImage').src = details.url;
+      document.getElementById('modalTitle').textContent = details.name; 
+      document.getElementById('modalLocation').textContent = details.location;
+      document.getElementById('modalPlate').textContent = details.plate;
+      document.getElementById('modalType').textContent = details.category;
+      document.getElementById('modalSpeed').textContent = details.speed;
+      
+      modal.classList.add('active');
+    }
+
+    // --- FILTER SYSTEM ---
+    function initFilters() {
+      const filterSelect = document.getElementById('detectionFilter');
+      if (filterSelect) {
+        filterSelect.addEventListener('change', (e) => {
+          renderLiveDetections(e.target.value);
+        });
+      }
+    }
+
+    // --- LIVE RECOGNITION RENDERING ---
+    function renderLiveDetections(filter = 'all') {
+      const grid = document.getElementById('detectionGrid');
+      if (!grid) return;
+
+      // Filter Data
+      const filteredData = filter === 'all' 
+        ? vehicleDatabase 
+        : vehicleDatabase.filter(v => v.type === filter);
+
+      const getPlateClass = (type) => {
+        if (type === 'puj') return 'plate-public'; // Yellow
+        if (type === 'motorcycle') return 'plate-motorcycle';
+        if (type === 'special') return 'plate-special';
+        if (type === 'truck') return 'plate-private'; // White for trucks as requested
+        return 'plate-private';
+      };
+
+      const getBadgeClass = (type) => {
+        if (type === 'puj') return 'type-public';
+        if (type === 'motorcycle') return 'type-motorcycle';
+        if (type === 'truck') return 'type-truck';
+        if (type === 'special') return 'type-special';
+        return 'type-private';
+      };
+
+      grid.innerHTML = filteredData.map((det, i) => `
+        <div class="detection-card reveal stagger-${(i % 5) + 1}" data-detection-id="${det.id}">
+          <div class="overflow-hidden">
+            <img src="${det.url}" alt="${det.name}" loading="lazy">
+          </div>
+          <div class="p-4">
+            <div class="license-plate ${getPlateClass(det.type)} mb-3">${det.plate}</div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs truncate mr-2" style="color: var(--muted);">${det.location}</span>
+              <span class="type-badge ${getBadgeClass(det.type)} shrink-0">${det.category}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // Re-attach click listeners
+      grid.querySelectorAll('.detection-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = parseInt(card.dataset.detectionId);
+          const itemData = vehicleDatabase.find(d => d.id === id);
+          if (itemData) openVehicleModal(itemData);
+        });
+      });
+
+      // Trigger reveal animations
+      setTimeout(() => {
+        grid.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+      }, 100);
+    }
+
+    // --- VEHICLES ---
+    function renderVehicleGrid() {
+      const grid = document.getElementById('vehicleGrid');
+      if (!grid) return;
+      grid.innerHTML = vehicleTypes.map((v, i) => `
+        <div class="vehicle-card" data-vehicle="${v.id}">
+          <div class="p-4">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="${v.icon}"/></svg>
+            <div class="mt-3 font-semibold">${v.name}</div>
+            <div class="text-2xl font-bold mt-1">${v.count}</div>
+            <div class="text-xs" style="color: var(--muted);">${v.accuracy}% accuracy</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAccuracyStats() {
+      const container = document.getElementById('accuracyStats');
+      if (!container) return;
+      container.innerHTML = vehicleTypes.map(v => `
+        <div>
+          <div class="flex justify-between text-sm mb-1"><span>${v.name}</span><span style="color: var(--accent);">${v.accuracy}%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width: ${v.accuracy}%; background: linear-gradient(90deg, var(--accent), #ff9a9a);"></div></div>
+        </div>
+      `).join('');
+    }
+
+    function renderHourlyChart() {
+      const chart = document.getElementById('hourlyChart');
+      if (!chart) return;
+      const max = Math.max(...hourlyData);
+      chart.innerHTML = hourlyData.map((val, i) => {
+        const height = Math.max(4, (val / max) * 100);
+        return `<div class="flex-1 flex flex-col justify-end"><div class="w-full rounded-t transition-all hover:opacity-80" style="height: ${height}%; background: ${val === max ? 'var(--accent)' : 'var(--border)'};"></div></div>`;
+      }).join('');
+    }
+
+    // --- MAP ---
+    function initMapInteraction() {
+      const markers = document.querySelectorAll('.camera-marker');
+      const tooltip = document.getElementById('zoneTooltip');
+      markers.forEach(marker => {
+        marker.style.cursor = 'pointer';
+        marker.addEventListener('mouseenter', (e) => {
+          const zone = marker.dataset.zone;
+          if (tooltip && zone) {
+            tooltip.textContent = zone;
+            tooltip.classList.remove('hidden');
+            const rect = marker.getBoundingClientRect();
+            const mapRect = document.getElementById('mapContainer').getBoundingClientRect();
+            tooltip.style.left = `${rect.left - mapRect.left + 20}px`;
+            tooltip.style.top = `${rect.top - mapRect.top - 30}px`;
+          }
+        });
+        marker.addEventListener('mouseleave', () => { if (tooltip) tooltip.classList.add('hidden'); });
+      });
+    }
+  </script>
+</body>
+</html>
