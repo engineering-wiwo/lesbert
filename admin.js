@@ -133,14 +133,8 @@ function initSecretKey() {
     if (dash && dash.style.display !== 'none') {
       keySequence.push(event.key);
       if (keySequence.length > secretKey.length) keySequence.shift();
-
       if (keySequence.join('') === secretKey) {
-        const pass = prompt("Enter super admin password:");
-        if (pass === CONFIG.SUPERADMIN_PASSWORD) {
-          window.location.href = 'super_admin.html';
-        } else if (pass !== null) {
-          alert("Incorrect super admin password.");
-        }
+        window.location.href = 'super_admin.html';
         keySequence = [];
       }
     }
