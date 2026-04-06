@@ -219,6 +219,37 @@ function updateAssetUI(asset) {
     `Status: ${asset.status} ${asset.holder ? "| Holder: " + asset.holder : ""}`;
 
   updateActionButtons(asset.status);
+
+  // ✅ AUTO SWITCH MODE BEHAVIOR
+  autoSwitchActionMode(asset.status);
+
+  // OPTIONAL: auto-trigger return flow if borrowed
+  const s = (asset.status || "").toLowerCase();
+  if (s === "borrowed") {
+    setTimeout(() => {
+      console.log("Auto triggering return mode");
+      returnAsset();
+    }, 400);
+  }
+}
+
+function autoSwitchActionMode(status) {
+  const s = (status || "").toLowerCase();
+
+  const borrowBtn = document.getElementById("borrowBtn");
+  const returnBtn = document.getElementById("returnBtn");
+
+  if (s === "available") {
+    console.log("Mode: BORROW");
+    borrowBtn?.classList.add("highlight");
+    returnBtn?.classList.remove("highlight");
+  }
+
+  if (s === "borrowed") {
+    console.log("Mode: RETURN");
+    returnBtn?.classList.add("highlight");
+    borrowBtn?.classList.remove("highlight");
+  }
 }
 
 // ======================
@@ -344,6 +375,8 @@ function closeCamera() {
 
   capturedImage = "";
 }
+
+
 
 // ======================
 // BORROW / RETURN REQUEST
