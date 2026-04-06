@@ -201,11 +201,40 @@ async function loadAssets() {
 }
 
 function formatTS(iso) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
-      + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  } catch { return iso; }
+  const d = parseDateValue(iso);
+  if (!d) return iso || "—";
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function getTransactionDetails(asset) {
+  return {
+    borrowedAt: firstValue(asset, ["borrowedAt", "borrowed_at", "borrowDate", "borrowedDate"]),
+    returnedAt: firstValue(asset, ["returnedAt", "returned_at", "returnDate", "returnedDate"]),
+    lastTransaction: firstValue(asset, ["transactionAt", "transactionDateTime", "timestamp", "lastUpdated", "updatedAt"])
+  };
+}
+
+function firstValue(obj, keys) {
+  for (const key of keys) {
+    if (obj && obj[key] !== undefined && obj[key] !== null && obj[key] !== "") return obj[key];
+  }
+  return "";
+}
+
+function parseDateValue(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+
+  // Support Google Sheets serial date numbers
+  if (typeof value === "number") {
+    const ms = Math.round((value - 25569) * 86400 * 1000);
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 // ================= DOWNLOAD QR =================
