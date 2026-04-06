@@ -302,6 +302,31 @@ async function sendAction(action) {
 }
 
 // ======================
+// POP UPS
+// ======================
+function setupPopupClose() {
+  const popup = document.getElementById("borrowPopup");
+
+  if (!popup) return;
+
+  popup.addEventListener("click", (e) => {
+    if (e.target === popup) {
+      closePopup();
+    }
+  });
+}
+
+function openPopup() {
+  const popup = document.getElementById("borrowPopup");
+  if (popup) popup.style.display = "flex";
+}
+
+function closePopup() {
+  const popup = document.getElementById("borrowPopup");
+  if (popup) popup.style.display = "none";
+}
+
+// ======================
 // RETURN WITH PHOTO
 // ======================
 function submitReturnWithPhoto() {
