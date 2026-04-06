@@ -391,28 +391,50 @@ async function sendAction(action) {
 }
 
 // ======================
-// POP UPS
+// POPUP SYSTEM
 // ======================
-function setupPopupClose() {
+
+function confirmBorrow() {
+  if (!scannedAsset) {
+    alert("Scan a QR first");
+    return;
+  }
+
   const popup = document.getElementById("borrowPopup");
+  const assetText = document.getElementById("popupAsset");
 
-  if (!popup) return;
+  if (!popup || !assetText) return;
 
-  popup.addEventListener("click", (e) => {
-    if (e.target === popup) {
-      closePopup();
-    }
-  });
-}
+  assetText.innerText = scannedAsset;
 
-function openPopup() {
-  const popup = document.getElementById("borrowPopup");
-  if (popup) popup.style.display = "flex";
+  // show popup
+  popup.classList.add("active");
 }
 
 function closePopup() {
   const popup = document.getElementById("borrowPopup");
-  if (popup) popup.style.display = "none";
+  if (!popup) return;
+
+  popup.classList.remove("active");
+}
+
+function setupPopupClose() {
+  const popup = document.getElementById("borrowPopup");
+  if (!popup) return;
+
+  // click outside to close
+  popup.addEventListener("click", function (e) {
+    if (e.target === popup) {
+      closePopup();
+    }
+  });
+
+  // ESC key to close (🔥 nice UX)
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      closePopup();
+    }
+  });
 }
 
 // ======================
