@@ -76,6 +76,7 @@ async function handleLogin(e) {
   }
 
   try {
+    errorDiv.textContent = "Authentication...";
     errorDiv.style.display = "block";
 
     const result = await jsonpRequest(CONFIG.ADMIN_API_URL, {
