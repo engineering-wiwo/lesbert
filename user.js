@@ -257,6 +257,95 @@ function returnAsset() {
 }
 
 // ======================
+// CAMERA SYSTEM
+// ======================
+
+function openCamera() {
+  const modal = document.getElementById("cameraModal");
+  const video = document.getElementById("cameraPreview");
+
+  if (!modal || !video) return;
+
+  modal.style.display = "flex";
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "environment" }
+  })
+  .then(s => {
+    stream = s;
+    video.srcObject = stream;
+  })
+  .catch(err => {
+    alert("Camera error: " + err);
+  });
+}
+
+function captureReturnPhoto() {
+  const video = document.getElementById("cameraPreview");
+  const canvas = document.getElementById("snapshot");
+  const preview = document.getElementById("photoPreview");
+
+  if (!video || !canvas || !preview) return;
+
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  ctx.drawImage(video, 0, 0);
+
+  capturedImage = canvas.toDataURL("image/png");
+
+  preview.src = capturedImage;
+  preview.style.display = "block";
+
+  video.style.display = "none";
+
+  const submitBtn = document.getElementById("submitReturnBtn");
+  const retakeBtn = document.getElementById("retakeBtn");
+
+  if (submitBtn) submitBtn.style.display = "inline-block";
+  if (retakeBtn) retakeBtn.style.display = "inline-block";
+}
+
+function retakePhoto() {
+  const video = document.getElementById("cameraPreview");
+  const preview = document.getElementById("photoPreview");
+
+  if (!video || !preview) return;
+
+  preview.style.display = "none";
+  video.style.display = "block";
+
+  const submitBtn = document.getElementById("submitReturnBtn");
+  const retakeBtn = document.getElementById("retakeBtn");
+
+  if (submitBtn) submitBtn.style.display = "none";
+  if (retakeBtn) retakeBtn.style.display = "none";
+
+  capturedImage = "";
+}
+
+function closeCamera() {
+  const modal = document.getElementById("cameraModal");
+
+  if (modal) modal.style.display = "none";
+
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+
+  const video = document.getElementById("cameraPreview");
+  const preview = document.getElementById("photoPreview");
+
+  if (video) video.style.display = "block";
+  if (preview) preview.style.display = "none";
+
+  capturedImage = "";
+}
+
+// ======================
 // BORROW / RETURN REQUEST
 // ======================
 async function sendAction(action) {
