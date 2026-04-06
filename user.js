@@ -16,6 +16,8 @@ let scannerInstance = null;
 // INIT APP
 // ======================
 window.addEventListener("load", () => {
+  userEmail = localStorage.getItem("userEmail") || "";
+  userName  = localStorage.getItem("userName") || "";
   if (typeof google !== "undefined") {
     initLogin();
   } else {
@@ -56,18 +58,28 @@ function handleLogin(response) {
   userEmail = data.email;
   userName = data.name;
 
+  // ✅ Validate FIRST
   if (!userEmail.endsWith(CONFIG.COMPANY_DOMAIN)) {
     alert("Only company accounts allowed");
     return;
   }
 
-  document.getElementById("userInfo").innerText = "Logged in: " + userEmail;
-  document.querySelector(".login-wrapper").style.display = "none";
+  // ✅ THEN save
+  localStorage.setItem("userName", userName);
+  localStorage.setItem("userEmail", userEmail);
 
-  // FEATURE 1: Notify admin of login
+  // ✅ UI update
+  if (userEmail && userName) {
+    document.getElementById("userInfo").innerText = "Logged in: " + userEmail;
+
+    const loginWrapper = document.querySelector(".login-wrapper");
+    if (loginWrapper) loginWrapper.style.display = "none";
+
+    setTimeout(startScanner, 500);
+  }
+
+  // ✅ Restore this (you accidentally disabled it)
   sendEmailNotification({ type: "login", user: userName, email: userEmail });
-
-  setTimeout(startScanner, 500);
 }
 
 // ======================
