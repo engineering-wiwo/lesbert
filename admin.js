@@ -30,7 +30,16 @@ function ensureFallbackLoadingOverlay() {
 
   overlay = document.createElement("div");
   overlay.id = "fallbackLoadingOverlay";
-  overlay.innerHTML = '<div class="fallback-loading-spinner" aria-hidden="true"></div><p>Loading...</p>';
+  overlay.innerHTML = `
+    <div class="fallback-loading-card">
+      <div class="tenor-gif-embed" data-postid="14596258" data-share-method="host" data-aspect-ratio="0.965625" data-width="100%">
+        <a href="https://tenor.com/view/polskie-radio-disco-polo-polski-rock-duck-walking-gif-14596258">Polskie Radio Disco Polo Sticker</a>
+        from
+        <a href="https://tenor.com/search/polskie+radio-stickers">Polskie Radio Stickers</a>
+      </div>
+      <p>Loading...</p>
+    </div>
+  `;
 
   const style = document.createElement("style");
   style.id = "fallbackLoadingOverlayStyle";
@@ -41,39 +50,55 @@ function ensureFallbackLoadingOverlay() {
       display: none;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      gap: 12px;
       background: rgba(10, 15, 25, 0.65);
-      color: #f8fafc;
-      font-weight: 600;
-      letter-spacing: 0.02em;
       z-index: 99999;
       backdrop-filter: blur(2px);
+      padding: 24px;
+      box-sizing: border-box;
     }
 
     #fallbackLoadingOverlay.is-active {
       display: flex;
     }
 
-    #fallbackLoadingOverlay .fallback-loading-spinner {
-      width: 44px;
-      height: 44px;
-      border: 4px solid rgba(255, 255, 255, 0.25);
-      border-top-color: #38bdf8;
-      border-radius: 50%;
-      animation: fallbackSpin 0.8s linear infinite;
+    #fallbackLoadingOverlay .fallback-loading-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 14px 18px;
+      color: #f8fafc;
+      font-weight: 600;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     }
 
-    @keyframes fallbackSpin {
-      to {
-        transform: rotate(360deg);
-      }
+    #fallbackLoadingOverlay .tenor-gif-embed {
+      width: 100%;
+      max-width: 280px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    #fallbackLoadingOverlay p {
+      margin: 0;
+      letter-spacing: 0.02em;
     }
   `;
 
   if (!document.getElementById("fallbackLoadingOverlayStyle")) {
     document.head.appendChild(style);
   }
+
+  if (!document.querySelector('script[src="https://tenor.com/embed.js"]')) {
+    const tenorScript = document.createElement("script");
+    tenorScript.src = "https://tenor.com/embed.js";
+    tenorScript.async = true;
+    document.head.appendChild(tenorScript);
+  }
+
   document.body.appendChild(overlay);
   return overlay;
 }
