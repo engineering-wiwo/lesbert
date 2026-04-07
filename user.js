@@ -674,14 +674,18 @@ function renderAssets(data) {
     if (asset.status === "Available") statusStyle = "color:#10b981;font-weight:600;";
     if (asset.status === "Borrowed")  statusStyle = "color:#ef4444;font-weight:600;";
 
+    const tx = getTransactionDetails(asset);
     const transactionDetails = [
-      asset.borrowedAt
-        ? `<div style="font-size:11px;color:var(--fg-muted);">📤 Borrowed: ${formatTS(asset.borrowedAt)}</div>`
+      tx.borrowedAt
+        ? `<div style="font-size:12px;color:#cbd5e1;">📤 Borrowed: ${formatTS(tx.borrowedAt)}</div>`
         : "",
-      asset.returnedAt
-        ? `<div style="font-size:11px;color:var(--fg-muted);">📥 Returned: ${formatTS(asset.returnedAt)}</div>`
+      tx.returnedAt
+        ? `<div style="font-size:12px;color:#cbd5e1;">📥 Returned: ${formatTS(tx.returnedAt)}</div>`
+        : "",
+      !tx.borrowedAt && !tx.returnedAt && tx.lastTransaction
+        ? `<div style="font-size:12px;color:#cbd5e1;">🕒 Transaction: ${formatTS(tx.lastTransaction)}</div>`
         : ""
-    ].filter(Boolean).join("") || `<span style="color:var(--fg-muted);font-size:12px;">—</span>`;
+    ].filter(Boolean).join("") || `<span style="color:#94a3b8;font-size:12px;">No transaction yet</span>`;
 
     body.innerHTML += `
       <tr>
