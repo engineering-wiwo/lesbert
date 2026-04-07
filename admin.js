@@ -164,14 +164,18 @@ async function loadAssets() {
         ? "disabled style='opacity:0.4;pointer-events:none;'" : "";
 
       // Show transaction date/time details in a single column
+      const tx = getTransactionDetails(asset);
       const transactionDetails = [
-        asset.borrowedAt
-          ? `<div style="font-size:11px;opacity:0.7;">📤 Borrowed: ${formatTS(asset.borrowedAt)}</div>`
+        tx.borrowedAt
+          ? `<div style="font-size:12px;color:#cbd5e1;">📤 Borrowed: ${formatTS(tx.borrowedAt)}</div>`
           : "",
-        asset.returnedAt
-          ? `<div style="font-size:11px;opacity:0.7;">📥 Returned: ${formatTS(asset.returnedAt)}</div>`
+        tx.returnedAt
+          ? `<div style="font-size:12px;color:#cbd5e1;">📥 Returned: ${formatTS(tx.returnedAt)}</div>`
+          : "",
+        !tx.borrowedAt && !tx.returnedAt && tx.lastTransaction
+          ? `<div style="font-size:12px;color:#cbd5e1;">🕒 Transaction: ${formatTS(tx.lastTransaction)}</div>`
           : ""
-      ].filter(Boolean).join("") || "—";
+      ].filter(Boolean).join("") || "<span style='font-size:12px;color:#94a3b8;'>No transaction yet</span>";
 
       html += `
         <tr>
@@ -200,18 +204,18 @@ async function loadAssets() {
   }
 }
 
-function formatTS(iso) {
-  const d = parseDateValue(iso);
+function formatTS(iso) {const d = parseDateValue(iso);
   if (!d) return iso || "—";
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
     + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 function getTransactionDetails(asset) {
+  const dynamic = findTransactionLikeFields(asset);
   return {
-    borrowedAt: firstValue(asset, ["borrowedAt", "borrowed_at", "borrowDate", "borrowedDate"]),
-    returnedAt: firstValue(asset, ["returnedAt", "returned_at", "returnDate", "returnedDate"]),
-    lastTransaction: firstValue(asset, ["transactionAt", "transactionDateTime", "timestamp", "lastUpdated", "updatedAt"])
+    borrowedAt: firstValue(asset, ["borrowedAt", "borrowed_at", "borrowDate", "borrowedDate", "borrowed at"]) || dynamic.borrowedAt,
+    returnedAt: firstValue(asset, ["returnedAt", "returned_at", "returnDate", "returnedDate", "returned at"]) || dynamic.returnedAt,
+    lastTransaction: firstValue(asset, ["transactionAt", "transactionDateTime", "transaction time", "timestamp", "lastUpdated", "updatedAt"]) || dynamic.lastTransaction
   };
 }
 
@@ -235,6 +239,31 @@ function parseDateValue(value) {
 
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d;
+}
+
+function findTransactionLikeFields(asset) {
+  if (!asset || typeof asset !== "object") {
+    return { borrowedAt: "", returnedAt: "", lastTransaction: "" };
+  }
+
+  let borrowedAt = "";
+  let returnedAt = "";
+  let lastTransaction = "";
+
+  Object.entries(asset).forEach(([key, value]) => {
+    const keyName = String(key).toLowerCase().replace(/[_\s-]+/g, "");
+    if (value === null || value === undefined || value === "") return;
+
+    if (!borrowedAt && keyName.includes("borrow") && (keyName.includes("date") || keyName.includes("time") || keyName.includes("at"))) {
+      borrowedAt = value;
+    } else if (!returnedAt && keyName.includes("return") && (keyName.includes("date") || keyName.includes("time") || keyName.includes("at"))) {
+      returnedAt = value;
+    } else if (!lastTransaction && (keyName.includes("transaction") || keyName.includes("timestamp"))) {
+      lastTransaction = value;
+    }
+  });
+
+  return { borrowedAt, returnedAt, lastTransaction };
 }
 
 // ================= DOWNLOAD QR =================
