@@ -714,6 +714,7 @@ function formatTransactionDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
 
 function recordTransactionDateTime(assetId, dateTime) {
   if (!assetId || !dateTime) return;
