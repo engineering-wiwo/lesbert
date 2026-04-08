@@ -27,106 +27,7 @@ window.addEventListener("beforeunload", function() {
   localStorage.removeItem("currentAdmin");
 });
 
-function initAddAssetLottie() {
-  const btn = document.getElementById("addAssetBtn");
-  if (!btn) return;
-
-  // Ensure button is positioned relative
-  btn.style.position = "relative";
-  btn.style.overflow = "hidden";
-
-  // Create Lottie container
-  const animContainer = document.createElement("div");
-  animContainer.style.position = "absolute";
-  animContainer.style.top = "0";
-  animContainer.style.left = "0";
-  animContainer.style.width = "100%";
-  animContainer.style.height = "100%";
-  animContainer.style.zIndex = "0";       // behind text
-  animContainer.style.pointerEvents = "none"; // clicks pass through
-  btn.prepend(animContainer);            // put behind the text
-
-  // Load Lottie animation
-  lottie.loadAnimation({
-    container: animContainer,
-    renderer: 'svg',
-    loop: true,
-    autoplay: true,
-    path: "https://assets10.lottiefiles.com/packages/lf20_bb627177-0a2f-4ff2-8c4c-42bdcad66fb5.json"
-  });
-
-  // Style text to be above animation
-  btn.style.color = "#ffffff";
-  btn.style.fontWeight = "600";
-  btn.style.fontSize = "16px";
-  btn.style.textAlign = "center";
-  btn.style.display = "flex";
-  btn.style.alignItems = "center";
-  btn.style.justifyContent = "center";
-}
-
 // ================= LOGIN & AUTH =================
-function ensureFallbackLoadingOverlay() {
-  let overlay = document.getElementById("fallbackLoadingOverlay");
-  if (overlay) return overlay;
-
-  overlay = document.createElement("div");
-  overlay.id = "fallbackLoadingOverlay";
-  overlay.innerHTML = `
-    <div class="fallback-loading-card">
-      <div class="tenor-gif-embed" data-postid="14596258" data-share-method="host" data-aspect-ratio="0.965625" data-width="100%">
-        <a href="https://tenor.com/view/polskie-radio-disco-polo-polski-rock-duck-walking-gif-14596258"></a>
-        <a href="https://tenor.com/search/polskie+radio-stickers"></a>
-      </div>
-      <p>Loading...</p>
-    </div>
-  `;
-
-  const style = document.createElement("style");
-  style.id = "fallbackLoadingOverlayStyle";
-  style.textContent = `
-    #fallbackLoadingOverlay {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(10, 15, 25, 0.65);
-      z-index: 99999;
-      backdrop-filter: blur(2px);
-      padding: 24px;
-      box-sizing: border-box;
-    }
-    #fallbackLoadingOverlay.is-active { display: flex; }
-    #fallbackLoadingOverlay .fallback-loading-card {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(148,163,184,0.35);
-      border-radius: 16px; padding: 14px 18px; color: #f8fafc;
-      font-weight: 600; box-shadow: 0 10px 28px rgba(0,0,0,0.45);
-    }
-    #fallbackLoadingOverlay .tenor-gif-embed { width: 100%; max-width: 280px; border-radius: 12px; overflow: hidden; }
-    #fallbackLoadingOverlay p { margin: 0; letter-spacing: 0.02em; }
-  `;
-  document.head.appendChild(style);
-
-  const tenorScript = document.createElement("script");
-  tenorScript.src = "https://tenor.com/embed.js";
-  tenorScript.async = true;
-  document.head.appendChild(tenorScript);
-
-  document.body.appendChild(overlay);
-  return overlay;
-}
-
-function setShopifyLoading(isLoading) {
-  if (window.shopify && typeof window.shopify.loading === "function") {
-    window.shopify.loading(isLoading);
-    return;
-  }
-  const overlay = ensureFallbackLoadingOverlay();
-  overlay.classList.toggle("is-active", Boolean(isLoading));
-}
-
 function updateUI() {
   const isLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
   const currentAdmin = JSON.parse(localStorage.getItem("currentAdmin") || "{}");
@@ -170,7 +71,6 @@ function updateUI() {
 // ================= LOGIN =================
 async function handleLogin(e) {
   e.preventDefault();
-
   const user = document.getElementById("username").value.trim();
   const pass = document.getElementById("password").value.trim();
   const errorDiv = document.getElementById("loginError");
@@ -195,7 +95,6 @@ async function handleLogin(e) {
       localStorage.setItem("adminLoggedIn", "true");
       localStorage.setItem("currentAdmin", JSON.stringify(result.account));
       errorDiv.style.display = "none";
-
       updateUI();
     } else {
       errorDiv.textContent = result.error || "Invalid credentials";
@@ -208,18 +107,6 @@ async function handleLogin(e) {
   }
 }
 
-// FEATURE 1: Send email when admin page is accessed
-function notifyAdminAccess(username, adminEmail) {
-  try {
-    const notifyEmail = localStorage.getItem("bs_notify_email") || "";
-    if (!notifyEmail) return;
-    const subject = `[BorrowSmart] Admin Login: ${username}`;
-    const body = `Admin account "${username}" logged into the admin dashboard at ${new Date().toLocaleString()}.`;
-    const params = new URLSearchParams({ action: "sendNotificationEmail", to: notifyEmail, subject, body });
-    fetch(CONFIG.ADMIN_API_URL + "?" + params.toString(), { mode: "no-cors" }).catch(() => {});
-  } catch (e) { console.warn("Notify failed:", e); }
-}
-
 function logout() {
   localStorage.removeItem("adminLoggedIn");
   localStorage.removeItem("currentAdmin");
@@ -229,7 +116,6 @@ function logout() {
 // ================= SECRET KEY =================
 let keySequence = [];
 const secretKey = '@';
-
 function initSecretKey() {
   document.addEventListener('keydown', function (event) {
     const dash = document.getElementById('dashboardSection');
@@ -279,11 +165,9 @@ async function loadAssets() {
           <td><span class="${statusClass}">${asset.status}</span></td>
           <td>${asset.holder || ""}</td>
           <td>${transactionDetails}</td>
+          <td>${asset.qr ? `<img src="${asset.qr}" width="40" style="cursor:pointer" onclick="downloadQR('${asset.id}','${asset.qr}')">` : "—"}</td>
           <td>
-            ${asset.qr ? `<img src="${asset.qr}" width="40" style="cursor:pointer" onclick="downloadQR('${asset.id}','${asset.qr}')">` : "—"}
-          </td>
-          <td>
-            <button id="addAssetBtn" ${lockEdit}></button>
+            <button onclick="saveEdit(this,'${asset.id}')" ${lockEdit}>💾</button>
             <button onclick="deleteAsset('${asset.id}')">🗑️</button>
           </td>
         </tr>
@@ -297,37 +181,14 @@ async function loadAssets() {
     console.error(error);
   } finally {
     setShopifyLoading(false);
-
-    // Initialize Lottie for Add Asset Button
-    const addBtn = document.getElementById("addAssetBtn");
-    if (addBtn) {
-      lottie.loadAnimation({
-        container: addBtn,
-        renderer: "svg",
-        loop: false,
-        autoplay: true,
-        path: "https://assets10.lottiefiles.com/packages/lf20_bb627177-0a2f-4ff2-8c4c-42bdcad66fb5.json"
-      });
-    }
   }
 }
 
-// ================= TRansaction =================
+// ================= OTHER FUNCTIONS (TRANSACTION, CSV, SEARCH, QR) =================
 function resolveTransactionDateTime(asset) {
   const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
   const localEntry = transactionLog[asset.id];
-
-  return (
-    asset.transactionDateTime ||
-    asset.transactionAt ||
-    asset.lastTransactionAt ||
-    asset.lastUpdated ||
-    asset.updatedAt ||
-    asset.borrowedAt ||
-    asset.returnedAt ||
-    localEntry?.dateTime ||
-    ""
-  );
+  return asset.transactionDateTime || asset.transactionAt || asset.lastTransactionAt || asset.lastUpdated || asset.updatedAt || asset.borrowedAt || asset.returnedAt || localEntry?.dateTime || "";
 }
 
 function formatTransactionDateTime(value) {
@@ -337,7 +198,6 @@ function formatTransactionDateTime(value) {
   return date.toLocaleString();
 }
 
-// ================= DOWNLOAD QR =================
 function downloadQR(id, url) {
   fetch(url)
     .then(res => res.blob())
@@ -354,7 +214,6 @@ function downloadQR(id, url) {
     .catch(() => alert("Failed to download QR"));
 }
 
-// ================= EDIT =================
 function saveEdit(btn, id) {
   const row = btn.closest("tr");
   setShopifyLoading(true);
@@ -365,12 +224,11 @@ function saveEdit(btn, id) {
     category: row.cells[2].innerText,
     location: ""
   })
-    .then(() => loadAssets())
-    .catch(() => alert("Edit failed"))
-    .finally(() => setShopifyLoading(false));
+  .then(() => loadAssets())
+  .catch(() => alert("Edit failed"))
+  .finally(() => setShopifyLoading(false));
 }
 
-// ================= DELETE =================
 function deleteAsset(id) {
   if (!confirm("Delete this asset?")) return;
   setShopifyLoading(true);
@@ -411,96 +269,31 @@ async function addAsset() {
   }
 }
 
-async function generateNextAssetID() {
-  try {
-    const data = await jsonpRequest(CONFIG.API_URL, { action: "getAssets" });
-    if (!data || data.length === 0) return "AST-001";
-    const numbers = data.map(asset => {
-      const match = asset.id.match(/AST-(\d+)/);
-      return match ? parseInt(match[1], 10) : 0;
-    });
-    return "AST-" + String(Math.max(...numbers) + 1).padStart(3, "0");
-  } catch { return "AST-" + Date.now(); }
-}
-
-// ================= QR =================
-function generateQR(id) {
-  const container = document.getElementById("qrPreviewContainer");
-  const img = document.getElementById("qrPreview");
-  if (!container || !img) return;
-  container.style.display = "block";
-  img.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + id;
-}
-
-// ================= SEARCH =================
-function searchInventory() {
-  let input = document.getElementById("search").value.toLowerCase();
-  document.querySelectorAll("#assetBody tr").forEach(row => {
-    row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none";
-  });
-}
-
-// ================= CSV =================
-function downloadCSV() {
-  let table = document.querySelector("table");
-  if (!table) return;
-  let csv = [];
-  table.querySelectorAll("tr").forEach(row => {
-    let rowData = [];
-    row.querySelectorAll("td,th").forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""') + '"'));
-    csv.push(rowData.join(","));
-  });
-  let link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob([csv.join("\n")], { type: "text/csv" }));
-  link.download = "BorrowSmart_Inventory_Report.csv";
-  link.click();
-}
-
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", function () {
-  // SESSION CHECK
-  if (!localStorage.getItem("adminLoggedIn")) {
-    document.getElementById("dashboardSection").style.display = "none";
-    document.getElementById("loginSection").style.display = "block";
-  }
-
   updateUI();
   initSecretKey();
 
+  // MOBILE MENU
   const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
   const mobileNav = document.querySelector('.mobile-nav');
   if (mobileMenuBtn && mobileNav) {
-    mobileMenuBtn.addEventListener('click', function (e) {
+    mobileMenuBtn.addEventListener('click', e => {
       e.stopPropagation();
       mobileNav.classList.toggle('active');
       document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
     });
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', e => {
       if (!mobileNav.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
         mobileNav.classList.remove('active');
         document.body.style.overflow = '';
       }
     });
-    mobileNav.addEventListener('click', function (e) {
+    mobileNav.addEventListener('click', e => {
       if (e.target.tagName === 'A') {
         mobileNav.classList.remove('active');
         document.body.style.overflow = '';
       }
     });
   }
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('animate-in'); });
-  });
-  const isMobile = window.innerWidth < 768;
-  document.querySelectorAll('.card, .stat-card, .team-card').forEach(el => {
-    if (!isMobile) observer.observe(el);
-    else el.classList.add('animate-in');
-  });
-});
-
-// ================= AUTO LOGOUT ON PAGE CLOSE =================
-window.addEventListener("beforeunload", function() {
-    localStorage.removeItem("adminLoggedIn");
-    localStorage.removeItem("currentAdmin");
 });
