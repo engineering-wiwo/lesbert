@@ -3,10 +3,6 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin Dashboard - BorrowSmart</title>
-
-<!-- ✅ ADDED (Lottie Script) -->
-<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-
 <link rel="icon" href="data:image/svg+xml,
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
   <rect width='100' height='100' rx='22' fill='%23ff4fa3'/>
@@ -20,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lottie-web@latest/build/player/lottie.min.js"></script>
 <script src="config.js"></script>
 <script src="admin.js" defer></script>
 </head>
@@ -113,25 +110,9 @@
               </select>
             </div>
           </div>
-
           <div style="display:flex; gap:16px; align-items:center;">
-
-            <!-- ✅ ONLY THIS BUTTON CHANGED -->
-            <button type="submit" class="btn-primary" style="display:flex;align-items:center;gap:8px;">
-              <lottie-player 
-                src="https://app.lottiefiles.com/animation/bb627177-0a2f-4ff2-8c4c-42bdcad66fb5"
-                background="transparent"
-                speed="1"
-                style="width:30px;height:30px;"
-                loop
-                autoplay>
-              </lottie-player>
-              Add Asset
-            </button>
-
-            <div id="qrPreviewContainer" style="display:none;">
-              <img id="qrPreview" width="100" style="border-radius:8px;">
-            </div>
+            <!-- Lottie Animated Button -->
+            <button type="submit" class="btn-primary" id="addAssetBtn"></button>
           </div>
         </form>
       </div>
@@ -165,8 +146,30 @@
       </div>
     </div>
 
-  </div>
+  </div><!-- end dashboardSection -->
 
 </div>
+
+<script>
+// ================= Lottie Add Asset Button =================
+document.addEventListener("DOMContentLoaded", function() {
+  const addBtn = document.getElementById("addAssetBtn");
+  if (addBtn) {
+    lottie.loadAnimation({
+      container: addBtn,
+      renderer: "svg",
+      loop: false,
+      autoplay: true,
+      path: "https://assets10.lottiefiles.com/packages/lf20_bb627177-0a2f-4ff2-8c4c-42bdcad66fb5.json"
+    });
+  }
+
+  // ================= Auto Logout on Page Close/Navigate =================
+  window.addEventListener("beforeunload", function() {
+    localStorage.removeItem("adminLoggedIn");
+    localStorage.removeItem("currentAdmin");
+  });
+});
+</script>
 </body>
 </html>
