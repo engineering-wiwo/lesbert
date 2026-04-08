@@ -155,13 +155,38 @@
 document.addEventListener("DOMContentLoaded", function() {
   const addBtn = document.getElementById("addAssetBtn");
   if (addBtn) {
+    // Make button relative for Lottie overlay
+    addBtn.style.position = "relative";
+    addBtn.style.overflow = "hidden";
+
+    // Create a container for Lottie animation
+    const animContainer = document.createElement("div");
+    animContainer.style.position = "absolute";
+    animContainer.style.top = "0";
+    animContainer.style.left = "0";
+    animContainer.style.width = "100%";
+    animContainer.style.height = "100%";
+    animContainer.style.zIndex = "0";          // behind text
+    animContainer.style.pointerEvents = "none"; // clicks pass through
+    addBtn.prepend(animContainer);            // animation behind the text
+
+    // Load Lottie animation
     lottie.loadAnimation({
-      container: addBtn,
+      container: animContainer,
       renderer: "svg",
-      loop: false,
+      loop: true,
       autoplay: true,
       path: "https://assets10.lottiefiles.com/packages/lf20_bb627177-0a2f-4ff2-8c4c-42bdcad66fb5.json"
     });
+
+    // Ensure button text is above animation
+    addBtn.style.color = "#ffffff";
+    addBtn.style.fontWeight = "600";
+    addBtn.style.fontSize = "16px";
+    addBtn.style.textAlign = "center";
+    addBtn.style.display = "flex";
+    addBtn.style.alignItems = "center";
+    addBtn.style.justifyContent = "center";
   }
 
   // ================= Auto Logout on Page Close/Navigate =================
