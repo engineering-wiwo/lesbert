@@ -1,3 +1,4 @@
+
 // ================= JSONP HELPER FUNCTION =================
 function jsonpRequest(url, params) {
   return new Promise((resolve, reject) => {
@@ -21,51 +22,8 @@ function jsonpRequest(url, params) {
   });
 }
 
-// ============= AUTO LOGOUT ON PAGE CLOSE =============
-window.addEventListener("beforeunload", function() {
-  localStorage.removeItem("adminLoggedIn");
-  localStorage.removeItem("currentAdmin");
-});
-
-function initAddAssetLottie() {
-  const btn = document.getElementById("addAssetBtn");
-  if (!btn) return;
-
-  // Ensure button is positioned relative
-  btn.style.position = "relative";
-  btn.style.overflow = "hidden";
-
-  // Create Lottie container
-  const animContainer = document.createElement("div");
-  animContainer.style.position = "absolute";
-  animContainer.style.top = "0";
-  animContainer.style.left = "0";
-  animContainer.style.width = "100%";
-  animContainer.style.height = "100%";
-  animContainer.style.zIndex = "0";       // behind text
-  animContainer.style.pointerEvents = "none"; // clicks pass through
-  btn.prepend(animContainer);            // put behind the text
-
-  // Load Lottie animation
-  lottie.loadAnimation({
-    container: animContainer,
-    renderer: 'svg',
-    loop: true,
-    autoplay: true,
-    path: "https://assets10.lottiefiles.com/packages/lf20_bb627177-0a2f-4ff2-8c4c-42bdcad66fb5.json"
-  });
-
-  // Style text to be above animation
-  btn.style.color = "#ffffff";
-  btn.style.fontWeight = "600";
-  btn.style.fontSize = "16px";
-  btn.style.textAlign = "center";
-  btn.style.display = "flex";
-  btn.style.alignItems = "center";
-  btn.style.justifyContent = "center";
-}
-
 // ================= LOGIN & AUTH =================
+
 function ensureFallbackLoadingOverlay() {
   let overlay = document.getElementById("fallbackLoadingOverlay");
   if (overlay) return overlay;
@@ -97,22 +55,48 @@ function ensureFallbackLoadingOverlay() {
       padding: 24px;
       box-sizing: border-box;
     }
-    #fallbackLoadingOverlay.is-active { display: flex; }
-    #fallbackLoadingOverlay .fallback-loading-card {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(148,163,184,0.35);
-      border-radius: 16px; padding: 14px 18px; color: #f8fafc;
-      font-weight: 600; box-shadow: 0 10px 28px rgba(0,0,0,0.45);
-    }
-    #fallbackLoadingOverlay .tenor-gif-embed { width: 100%; max-width: 280px; border-radius: 12px; overflow: hidden; }
-    #fallbackLoadingOverlay p { margin: 0; letter-spacing: 0.02em; }
-  `;
-  document.head.appendChild(style);
 
-  const tenorScript = document.createElement("script");
-  tenorScript.src = "https://tenor.com/embed.js";
-  tenorScript.async = true;
-  document.head.appendChild(tenorScript);
+    #fallbackLoadingOverlay.is-active {
+      display: flex;
+    }
+
+    #fallbackLoadingOverlay .fallback-loading-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 14px 18px;
+      color: #f8fafc;
+      font-weight: 600;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    #fallbackLoadingOverlay .tenor-gif-embed {
+      width: 100%;
+      max-width: 280px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    #fallbackLoadingOverlay p {
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+  `;
+
+  if (!document.getElementById("fallbackLoadingOverlayStyle")) {
+    document.head.appendChild(style);
+  }
+
+  if (!document.querySelector('script[src="https://tenor.com/embed.js"]')) {
+    const tenorScript = document.createElement("script");
+    tenorScript.src = "https://tenor.com/embed.js";
+    tenorScript.async = true;
+    document.head.appendChild(tenorScript);
+  }
 
   document.body.appendChild(overlay);
   return overlay;
@@ -123,6 +107,7 @@ function setShopifyLoading(isLoading) {
     window.shopify.loading(isLoading);
     return;
   }
+
   const overlay = ensureFallbackLoadingOverlay();
   overlay.classList.toggle("is-active", Boolean(isLoading));
 }
@@ -153,7 +138,6 @@ function updateUI() {
       <a href="#" onclick="logout()">Logout</a>
     `;
     mobileNav.innerHTML = nav.innerHTML;
-
     loadAssets();
   } else {
     loginSection.style.display = "block";
@@ -195,6 +179,9 @@ async function handleLogin(e) {
       localStorage.setItem("adminLoggedIn", "true");
       localStorage.setItem("currentAdmin", JSON.stringify(result.account));
       errorDiv.style.display = "none";
+
+      // FEATURE 1: Notify admin that admin page was accessed
+      notifyAdminAccess(user, result.account?.email || "");
 
       updateUI();
     } else {
@@ -283,7 +270,7 @@ async function loadAssets() {
             ${asset.qr ? `<img src="${asset.qr}" width="40" style="cursor:pointer" onclick="downloadQR('${asset.id}','${asset.qr}')">` : "—"}
           </td>
           <td>
-            <button id="addAssetBtn" ${lockEdit}></button>
+            <button onclick="saveEdit(this,'${asset.id}')" ${lockEdit}>💾</button>
             <button onclick="deleteAsset('${asset.id}')">🗑️</button>
           </td>
         </tr>
@@ -297,22 +284,11 @@ async function loadAssets() {
     console.error(error);
   } finally {
     setShopifyLoading(false);
-
-    // Initialize Lottie for Add Asset Button
-    const addBtn = document.getElementById("addAssetBtn");
-    if (addBtn) {
-      lottie.loadAnimation({
-        container: addBtn,
-        renderer: "svg",
-        loop: false,
-        autoplay: true,
-        path: "https://assets10.lottiefiles.com/packages/lf20_bb627177-0a2f-4ff2-8c4c-42bdcad66fb5.json"
-      });
-    }
   }
 }
 
-// ================= TRansaction =================
+// TRansaction
+
 function resolveTransactionDateTime(asset) {
   const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
   const localEntry = transactionLog[asset.id];
@@ -458,12 +434,6 @@ function downloadCSV() {
 
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", function () {
-  // SESSION CHECK
-  if (!localStorage.getItem("adminLoggedIn")) {
-    document.getElementById("dashboardSection").style.display = "none";
-    document.getElementById("loginSection").style.display = "block";
-  }
-
   updateUI();
   initSecretKey();
 
@@ -497,10 +467,4 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!isMobile) observer.observe(el);
     else el.classList.add('animate-in');
   });
-});
-
-// ================= AUTO LOGOUT ON PAGE CLOSE =================
-window.addEventListener("beforeunload", function() {
-    localStorage.removeItem("adminLoggedIn");
-    localStorage.removeItem("currentAdmin");
 });
