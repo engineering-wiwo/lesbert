@@ -436,10 +436,17 @@ function updateActionButtons(status) {
   if (s === "available") {
     borrowBtn.style.display = "block";
     returnBtn.style.display = "none";
-  } else if (s === "borrowed") {
+  } 
+  else if (s === "borrowed") {
     borrowBtn.style.display = "none";
     returnBtn.style.display = "block";
-  } else {
+  } 
+  else if (s === "processing") {
+    // hide both while loading
+    borrowBtn.style.display = "none";
+    returnBtn.style.display = "none";
+  } 
+  else {
     borrowBtn.style.display = "none";
     returnBtn.style.display = "none";
   }
@@ -449,18 +456,18 @@ function updateActionButtons(status) {
 // ACTIONS
 // ======================
 function borrowAsset() {
+  updateActionButtons("processing"); // 🔥 show loading state
   sendAction("borrow");
   closePopup();
 }
 
 function returnAsset() {
-  openCamera();
+  openCamera(); // wait for confirmation
 }
 
 // ======================
 // CAMERA SYSTEM
 // ======================
-
 function openCamera() {
   const modal = document.getElementById("cameraModal");
   const video = document.getElementById("cameraPreview");
@@ -527,6 +534,18 @@ function retakePhoto() {
   capturedImage = "";
 }
 
+// 🔥 CONFIRM RETURN HERE
+function submitReturn() {
+  if (!capturedImage) {
+    return alert("Capture photo first");
+  }
+
+  updateActionButtons("processing"); // loading state
+
+  sendAction("return"); // 🔥 triggers button switch after success
+  closeCamera();
+}
+
 function closeCamera() {
   const modal = document.getElementById("cameraModal");
 
@@ -545,8 +564,6 @@ function closeCamera() {
 
   capturedImage = "";
 }
-
-
 
 // ======================
 // BORROW / RETURN REQUEST
@@ -569,14 +586,15 @@ async function sendAction(action) {
         asset: scannedAsset,
         email: userEmail,
         name: userName,
-        borrowedAt
+        borrowedAt,
+        image: capturedImage || "" // optional for return proof
       })
     });
 
     const result = await res.json();
     document.getElementById("status").innerText = result.message;
 
-    // ✅ AUTO SWITCH BUTTONS HERE
+    // 🔥 AUTO SWITCH BUTTONS AFTER SUCCESS
     if (result.success) {
       if (result.status) {
         updateActionButtons(result.status);
