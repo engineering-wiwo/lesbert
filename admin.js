@@ -33,8 +33,6 @@ function ensureFallbackLoadingOverlay() {
   overlay.innerHTML = `
     <div class="fallback-loading-card">
       <div class="tenor-gif-embed" data-postid="14596258" data-share-method="host" data-aspect-ratio="0.965625" data-width="100%">
-        <a href="https://tenor.com/view/polskie-radio-disco-polo-polski-rock-duck-walking-gif-14596258"></a>
-        <a href="https://tenor.com/search/polskie+radio-stickers"></a>
       </div>
       <p>Loading...</p>
     </div>
