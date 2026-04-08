@@ -29,9 +29,6 @@ function ensureFallbackLoadingOverlay() {
   overlay.innerHTML = `
     <div class="fallback-loading-card">
       <div class="tenor-gif-embed" data-postid="14596258" data-share-method="host" data-aspect-ratio="0.965625" data-width="100%">
-        <a href="https://tenor.com/view/polskie-radio-disco-polo-polski-rock-duck-walking-gif-14596258">Polskie Radio Disco Polo Sticker</a>
-        from
-        <a href="https://tenor.com/search/polskie+radio-stickers">Polskie Radio Stickers</a>
       </div>
       <p>Loading...</p>
     </div>
