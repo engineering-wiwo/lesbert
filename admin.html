@@ -3,6 +3,10 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin Dashboard - BorrowSmart</title>
+
+<!-- ✅ ADDED (Lottie Script) -->
+<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
 <link rel="icon" href="data:image/svg+xml,
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
   <rect width='100' height='100' rx='22' fill='%23ff4fa3'/>
@@ -109,8 +113,22 @@
               </select>
             </div>
           </div>
+
           <div style="display:flex; gap:16px; align-items:center;">
-            <button type="submit" class="btn-primary">Add Asset</button>
+
+            <!-- ✅ ONLY THIS BUTTON CHANGED -->
+            <button type="submit" class="btn-primary" style="display:flex;align-items:center;gap:8px;">
+              <lottie-player 
+                src="https://app.lottiefiles.com/animation/bb627177-0a2f-4ff2-8c4c-42bdcad66fb5"
+                background="transparent"
+                speed="1"
+                style="width:30px;height:30px;"
+                loop
+                autoplay>
+              </lottie-player>
+              Add Asset
+            </button>
+
             <div id="qrPreviewContainer" style="display:none;">
               <img id="qrPreview" width="100" style="border-radius:8px;">
             </div>
@@ -119,7 +137,7 @@
       </div>
     </div>
 
-    <!-- INVENTORY — Feature 3: Borrowed At + Returned At columns -->
+    <!-- INVENTORY -->
     <div class="section">
       <div class="inventory-header">
         <h2 class="section-title">Inventory</h2>
@@ -147,7 +165,7 @@
       </div>
     </div>
 
-  </div><!-- end dashboardSection -->
+  </div>
 
 </div>
 </body>
