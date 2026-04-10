@@ -18,6 +18,112 @@
 <link rel="stylesheet" href="style.css">
 <script src="config.js"></script>
 <script src="admin2.js" defer></script>
+<style>
+/* Category dropdown styles */
+.category-select {
+  position: relative;
+}
+
+.category-dropdown {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-dropdown:hover {
+  border-color: #999;
+}
+
+.category-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-top: 2px;
+}
+
+.category-list.show {
+  display: block;
+}
+
+.category-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.category-item:hover {
+  background: #f5f5f5;
+}
+
+.category-item.default {
+  font-weight: 500;
+}
+
+.category-item.custom {
+  color: #666;
+}
+
+.category-section-label {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f9f9f9;
+  border-top: 1px solid #eee;
+  margin-top: 4px;
+}
+
+.category-section-label:first-child {
+  border-top: none;
+  margin-top: 0;
+}
+
+.delete-category {
+  color: #e74c3c;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.category-item:hover .delete-category {
+  opacity: 1;
+}
+
+.delete-category:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .category-list {
+    max-height: 150px;
+  }
+}
+</style>
 </head>
 
 <body>
@@ -99,14 +205,14 @@
             </div>
             <div class="form-group">
               <label>Category</label>
-              <select id="category" required onchange="handleCategoryChange(this.value)">
-                <option value="">Select Category</option>
-                <option value="Keys">Keys</option>
-                <option value="Electronics">Electronics</option>
-                <option value="Equipment">Equipment</option>
-                <option value="Tools">Tools</option>
-                <option value="Others">Others</option>
-              </select>
+              <div class="category-select">
+                <div class="category-dropdown" id="categoryDropdown" onclick="toggleCategoryList()">
+                  <span id="selectedCategory">Select Category</span>
+                  <span>▼</span>
+                </div>
+                <div class="category-list" id="categoryList"></div>
+              </div>
+              <input type="hidden" id="category" required>
             </div>
           </div>
           <div id="customCategoryDiv" class="form-group" style="display:none; margin-top:16px;">
@@ -159,20 +265,125 @@ window.addEventListener("beforeunload", function() {
   localStorage.removeItem("currentAdmin");
 });
 
-// ================= Category Change Handler =================
-function handleCategoryChange(value) {
-  const customCategoryDiv = document.getElementById('customCategoryDiv');
-  const customCategoryInput = document.getElementById('customCategory');
-  
-  if (value === 'Others') {
-    customCategoryDiv.style.display = 'block';
-    customCategoryInput.required = true;
-  } else {
-    customCategoryDiv.style.display = 'none';
-    customCategoryInput.required = false;
-    customCategoryInput.value = '';
+// ================= Category Management =================
+const DEFAULT_CATEGORIES = ['Keys', 'Electronics', 'Equipment', 'Tools'];
+
+function getCustomCategories() {
+  return JSON.parse(localStorage.getItem('customCategories') || '[]');
+}
+
+function saveCustomCategories(categories) {
+  localStorage.setItem('customCategories', JSON.stringify(categories));
+}
+
+function addCustomCategory(category) {
+  const customCategories = getCustomCategories();
+  if (!customCategories.includes(category) && !DEFAULT_CATEGORIES.includes(category)) {
+    customCategories.push(category);
+    saveCustomCategories(customCategories);
+    renderCategoryList();
   }
 }
+
+function deleteCustomCategory(category) {
+  const customCategories = getCustomCategories();
+  const index = customCategories.indexOf(category);
+  if (index > -1) {
+    customCategories.splice(index, 1);
+    saveCustomCategories(customCategories);
+    renderCategoryList();
+    // Reset selection if deleted category was selected
+    if (document.getElementById('category').value === category) {
+      selectCategory('');
+    }
+  }
+}
+
+function renderCategoryList() {
+  const categoryList = document.getElementById('categoryList');
+  const selectedValue = document.getElementById('category').value;
+  
+  let html = '';
+  
+  // Default categories section
+  if (DEFAULT_CATEGORIES.length > 0) {
+    html += `<div class="category-section-label">Default Categories</div>`;
+    DEFAULT_CATEGORIES.forEach(cat => {
+      const isSelected = selectedValue === cat;
+      html += `
+        <div class="category-item default ${isSelected ? 'selected' : ''}" onclick="selectCategory('${cat}')">
+          <span>${cat}</span>
+        </div>
+      `;
+    });
+  }
+  
+  // Custom categories section
+  const customCategories = getCustomCategories();
+  if (customCategories.length > 0) {
+    html += `<div class="category-section-label">Custom Categories</div>`;
+    customCategories.forEach(cat => {
+      const isSelected = selectedValue === cat;
+      html += `
+        <div class="category-item custom ${isSelected ? 'selected' : ''}" onclick="selectCategory('${cat}')">
+          <span>${cat}</span>
+          <span class="delete-category" onclick="event.stopPropagation(); deleteCustomCategory('${cat}')">✕</span>
+        </div>
+      `;
+    });
+  }
+  
+  // Add new category option
+  const isSelected = selectedValue === 'Others';
+  html += `
+    <div class="category-section-label">Add New</div>
+    <div class="category-item ${isSelected ? 'selected' : ''}" onclick="selectCategory('Others')">
+      <span>+ Add New Category</span>
+    </div>
+  `;
+  
+  categoryList.innerHTML = html;
+}
+
+function toggleCategoryList() {
+  const categoryList = document.getElementById('categoryList');
+  const isOpen = categoryList.classList.contains('show');
+  
+  // Close all other dropdowns
+  document.querySelectorAll('.category-list').forEach(list => {
+    list.classList.remove('show');
+  });
+  
+  // Toggle this dropdown
+  if (!isOpen) {
+    categoryList.classList.add('show');
+    // Add click outside listener
+    setTimeout(() => {
+      document.addEventListener('click', closeCategoryList);
+    }, 100);
+  }
+}
+
+function closeCategoryList(e) {
+  const categorySelect = document.querySelector('.category-select');
+  if (!categorySelect.contains(e.target)) {
+    document.getElementById('categoryList').classList.remove('show');
+    document.removeEventListener('click', closeCategoryList);
+  }
+}
+
+function selectCategory(value) {
+  document.getElementById('category').value = value;
+  document.getElementById('selectedCategory').textContent = value || 'Select Category';
+  document.getElementById('categoryList').classList.remove('show');
+  document.removeEventListener('click', closeCategoryList);
+  handleCategoryChange(value);
+}
+
+// Initialize category list when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  renderCategoryList();
+});
 </script>
 </body>
 </html>
