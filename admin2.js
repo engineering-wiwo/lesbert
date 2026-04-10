@@ -429,6 +429,8 @@ async function addAsset() {
       return;
     }
     finalCategory = customCategory;
+    // Add the custom category to the list of categories
+    addCustomCategory(finalCategory);
   }
 
   setLoading(true);
@@ -456,6 +458,8 @@ async function addAsset() {
         // Hide custom category input after reset
         const customDiv = document.getElementById("customCategoryDiv");
         if (customDiv) customDiv.style.display = 'none';
+        // Reset the selected category display
+        document.getElementById('selectedCategory').textContent = 'Select Category';
       }
     } else {
       alert(result?.error || result?.message || "Failed to add asset.");
@@ -469,7 +473,7 @@ async function addAsset() {
 }
 
 // ─── CATEGORY HANDLER ─────────────────────────────────────────────
-// NEW: Function to handle category dropdown change
+// Function to handle category dropdown change
 function handleCategoryChange(value) {
   const customCategoryDiv = document.getElementById('customCategoryDiv');
   const customCategoryInput = document.getElementById('customCategory');
