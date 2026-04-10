@@ -89,6 +89,8 @@
         <h2>QR Scanner</h2>
         <p>Position the QR code within the frame</p>
       </div>
+      <button id="scanAgainBtn" style="display:none; margin-top:10px;">
+        🔄 Scan Again</button>
     </div>
     <div id="scanner"></div>
   </div>
@@ -97,9 +99,7 @@
     <p>Scanned Asset</p>
     <h3 id="assetID">None</h3>
   </div>
-  <button id="scanAgainBtn" style="display:none; margin-top:10px;">
-  🔄 Scan Again</button>
-
+  
   <div class="actions">
     <button id="borrowBtn" onclick="confirmBorrow()" style="display:none;">Borrow</button>
     <button id="returnBtn" onclick="returnAsset()" style="display:none;">Return</button>
