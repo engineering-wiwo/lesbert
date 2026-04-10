@@ -155,10 +155,11 @@ async function sendContactMessage() {
   status.textContent = 'Sending...';
 
   try {
+    const params = new URLSearchParams({ action: 'submitMessage', name, email, message });
+
     const res = await fetch(CONFIG.ADMIN_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'submitMessage', name, email, message })
+      body: params
     });
 
     const data = await res.json();
