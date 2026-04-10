@@ -417,15 +417,29 @@ function deleteAsset(id) {
 async function addAsset() {
   const name     = document.getElementById("assetName").value.trim();
   const category = document.getElementById("category").value.trim();
+  const customCategory = document.getElementById("customCategory")?.value.trim() || "";
 
   if (!name) { alert("Asset name is required."); return; }
+
+  // Use custom category if "Others" is selected and custom category is provided
+  let finalCategory = category;
+  if (category === 'Others') {
+    if (!customCategory) {
+      alert("Please enter a custom category name.");
+      return;
+    }
+    finalCategory = customCategory;
+  }
 
   setLoading(true);
   try {
     const assetID = await generateNextAssetID();
     const result  = await apiPost(CONFIG.API_URL, {
       action: "addAsset",
-      assetID, name, category, location: "",
+      assetID, 
+      name, 
+      category: finalCategory, 
+      location: "",
     });
 
     const ok =
@@ -437,7 +451,12 @@ async function addAsset() {
       alert("Asset added: " + assetID);
       loadAssets();
       const form = document.getElementById("addAssetForm");
-      if (form) form.reset();
+      if (form) {
+        form.reset();
+        // Hide custom category input after reset
+        const customDiv = document.getElementById("customCategoryDiv");
+        if (customDiv) customDiv.style.display = 'none';
+      }
     } else {
       alert(result?.error || result?.message || "Failed to add asset.");
     }
@@ -446,6 +465,22 @@ async function addAsset() {
     alert("Failed to add asset: " + err.message);
   } finally {
     setLoading(false);
+  }
+}
+
+// ─── CATEGORY HANDLER ─────────────────────────────────────────────
+// NEW: Function to handle category dropdown change
+function handleCategoryChange(value) {
+  const customCategoryDiv = document.getElementById('customCategoryDiv');
+  const customCategoryInput = document.getElementById('customCategory');
+  
+  if (value === 'Others') {
+    customCategoryDiv.style.display = 'block';
+    customCategoryInput.required = true;
+  } else {
+    customCategoryDiv.style.display = 'none';
+    customCategoryInput.required = false;
+    customCategoryInput.value = '';
   }
 }
 
