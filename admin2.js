@@ -414,12 +414,31 @@ function deleteAsset(id) {
     .finally(() => setLoading(false));
 }
 
+// ─── CATEGORY HANDLER ─────────────────────────────────────────────
+// Function to handle category dropdown change
+function handleCategoryChange(value) {
+  const customCategoryDiv = document.getElementById('customCategoryDiv');
+  const customCategoryInput = document.getElementById('customCategory');
+  
+  if (value === 'Others') {
+    customCategoryDiv.style.display = 'block';
+    customCategoryInput.required = true;
+    customCategoryInput.focus();
+  } else {
+    customCategoryDiv.style.display = 'none';
+    customCategoryInput.required = false;
+    customCategoryInput.value = '';
+  }
+}
+
+// Modified addAsset function to save custom categories
 async function addAsset() {
   const name     = document.getElementById("assetName").value.trim();
   const category = document.getElementById("category").value.trim();
   const customCategory = document.getElementById("customCategory")?.value.trim() || "";
 
   if (!name) { alert("Asset name is required."); return; }
+  if (!category) { alert("Please select a category."); return; }
 
   // Use custom category if "Others" is selected and custom category is provided
   let finalCategory = category;
@@ -429,6 +448,8 @@ async function addAsset() {
       return;
     }
     finalCategory = customCategory;
+    // Save the new custom category
+    addCustomCategory(finalCategory);
   }
 
   setLoading(true);
@@ -453,7 +474,9 @@ async function addAsset() {
       const form = document.getElementById("addAssetForm");
       if (form) {
         form.reset();
-        // Hide custom category input after reset
+        // Reset category selection
+        selectCategory('');
+        // Hide custom category input
         const customDiv = document.getElementById("customCategoryDiv");
         if (customDiv) customDiv.style.display = 'none';
       }
@@ -465,22 +488,6 @@ async function addAsset() {
     alert("Failed to add asset: " + err.message);
   } finally {
     setLoading(false);
-  }
-}
-
-// ─── CATEGORY HANDLER ─────────────────────────────────────────────
-// NEW: Function to handle category dropdown change
-function handleCategoryChange(value) {
-  const customCategoryDiv = document.getElementById('customCategoryDiv');
-  const customCategoryInput = document.getElementById('customCategory');
-  
-  if (value === 'Others') {
-    customCategoryDiv.style.display = 'block';
-    customCategoryInput.required = true;
-  } else {
-    customCategoryDiv.style.display = 'none';
-    customCategoryInput.required = false;
-    customCategoryInput.value = '';
   }
 }
 
