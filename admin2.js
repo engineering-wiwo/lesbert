@@ -414,8 +414,62 @@ function deleteAsset(id) {
     .finally(() => setLoading(false));
 }
 
+async function addAsset() {
+  const name     = document.getElementById("assetName").value.trim();
+  const category = document.getElementById("category").value.trim();
+  const customCategory = document.getElementById("customCategory")?.value.trim() || "";
+
+  if (!name) { alert("Asset name is required."); return; }
+
+  // Use custom category if "Others" is selected and custom category is provided
+  let finalCategory = category;
+  if (category === 'Others') {
+    if (!customCategory) {
+      alert("Please enter a custom category name.");
+      return;
+    }
+    finalCategory = customCategory;
+  }
+
+  setLoading(true);
+  try {
+    const assetID = await generateNextAssetID();
+    const result  = await apiPost(CONFIG.API_URL, {
+      action: "addAsset",
+      assetID, 
+      name, 
+      category: finalCategory, 
+      location: "",
+    });
+
+    const ok =
+      result?.success === true ||
+      (result?.message || "").toLowerCase().includes("success");
+
+    if (ok) {
+      generateQRPreview(assetID);
+      alert("Asset added: " + assetID);
+      loadAssets();
+      const form = document.getElementById("addAssetForm");
+      if (form) {
+        form.reset();
+        // Hide custom category input after reset
+        const customDiv = document.getElementById("customCategoryDiv");
+        if (customDiv) customDiv.style.display = 'none';
+      }
+    } else {
+      alert(result?.error || result?.message || "Failed to add asset.");
+    }
+  } catch (err) {
+    console.error("[addAsset]", err);
+    alert("Failed to add asset: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
 // ─── CATEGORY HANDLER ─────────────────────────────────────────────
-// Function to handle category dropdown change
+// Modified: Function to handle category dropdown change
 function handleCategoryChange(value) {
   const customCategoryDiv = document.getElementById('customCategoryDiv');
   const customCategoryInput = document.getElementById('customCategory');
@@ -491,22 +545,13 @@ async function addAsset() {
   }
 }
 
-async function generateNextAssetID() {
-  try {
-    const data  = await apiGet(CONFIG.API_URL, { action: "getAssets" });
-    const items = Array.isArray(data) ? data : [];
-    if (!items.length) return "AST-001";
-
-    const max = Math.max(
-      0,
-      ...items.map((a) => {
-        const m = (a.id || "").match(/AST-(\d+)/);
-        return m ? parseInt(m[1], 10) : 0;
-      })
-    );
-    return "AST-" + String(max + 1).padStart(3, "0");
-  } catch {
-    return "AST-" + Date.now();
+// Add these helper functions at the end of the file (before INIT section)
+function addCustomCategory(category) {
+  const customCategories = getCustomCategories();
+  if (!customCategories.includes(category) && !DEFAULT_CATEGORIES.includes(category)) {
+    customCategories.push(category);
+    saveCustomCategories(customCategories);
+    renderCategoryList();
   }
 }
 
