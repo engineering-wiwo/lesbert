@@ -18,206 +18,6 @@
 <link rel="stylesheet" href="style.css">
 <script src="config.js"></script>
 <script src="admin2.js" defer></script>
-<style>
-/* Category dropdown styles - updated to match theme */
-.category-select {
-  position: relative;
-}
-
-.category-dropdown {
-  width: 100%;
-  padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--fg);
-  font-family: 'Inter', sans-serif;
-  font-size: 15px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.3s ease;
-}
-
-.category-dropdown:hover {
-  border-color: var(--accent);
-}
-
-.category-dropdown:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.category-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  max-height: 240px;
-  overflow-y: auto;
-  z-index: 9999;
-  display: none;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  backdrop-filter: blur(12px);
-}
-
-.category-list.show {
-  display: block;
-}
-
-.category-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: background-color 0.2s;
-  color: var(--fg);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-}
-
-.category-item:last-child {
-  border-bottom: none;
-}
-
-.category-item:hover {
-  background: rgba(236, 72, 153, 0.1);
-}
-
-.category-item.selected {
-  background: rgba(236, 72, 153, 0.2);
-  color: var(--accent);
-}
-
-.category-item.default {
-  font-weight: 500;
-}
-
-.category-item.custom {
-  color: var(--fg-muted);
-}
-
-.category-section-label {
-  padding: 8px 16px;
-  font-size: 11px;
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.category-section-label:first-child {
-  border-top: none;
-  margin-top: 0;
-}
-
-.delete-category {
-  color: var(--danger);
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.category-item:hover .delete-category {
-  opacity: 1;
-}
-
-.delete-category:hover {
-  background: var(--danger);
-  color: white;
-}
-
-/* Custom category input styling */
-#customCategoryDiv {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 20px;
-  margin-top: 16px;
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-#customCategoryDiv label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: var(--fg);
-}
-
-#customCategory {
-  width: 100%;
-  padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--fg);
-  font-family: 'Inter', sans-serif;
-  font-size: 15px;
-  transition: all 0.3s ease;
-}
-
-#customCategory:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-#customCategory::placeholder {
-  color: var(--fg-muted);
-}
-
-/* Scrollbar styling for dropdown */
-.category-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.category-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-}
-
-.category-list::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 3px;
-}
-
-.category-list::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-secondary);
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .category-list {
-    max-height: 180px;
-  }
-}
-</style>
 </head>
 
 <body>
@@ -299,21 +99,19 @@
             </div>
             <div class="form-group">
               <label>Category</label>
-              <div class="category-select">
-                <div class="category-dropdown" id="categoryDropdown">
-                  <span id="selectedCategory">Select Category</span>
-                  <span>▼</span>
-                </div>
-                <div class="category-list" id="categoryList"></div>
-              </div>
-              <input type="hidden" id="category" required>
+              <select id="category" required onchange="handleCategoryChange(this.value)">
+                <option value="">Select Category</option>
+                <option value="Keys">Keys</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Equipment">Equipment</option>
+                <option value="Tools">Tools</option>
+                <option value="Others">Others</option>
+              </select>
             </div>
           </div>
-          <div id="customCategoryDiv" style="display:none; margin-top:16px;">
-            <div class="form-group">
-              <label>Enter Category Name</label>
-              <input type="text" id="customCategory" placeholder="Enter custom category name">
-            </div>
+          <div id="customCategoryDiv" class="form-group" style="display:none; margin-top:16px;">
+            <label>Enter Category Name</label>
+            <input type="text" id="customCategory" placeholder="Enter custom category name">
           </div>
           <div style="display:flex; gap:16px; align-items:center;">
             <button type="submit" class="btn-primary" id="addAssetBtn">Add Asset</button>
@@ -361,192 +159,20 @@ window.addEventListener("beforeunload", function() {
   localStorage.removeItem("currentAdmin");
 });
 
-// ================= Category Management =================
-const DEFAULT_CATEGORIES = ['Keys', 'Electronics', 'Equipment', 'Tools'];
-
-function getCustomCategories() {
-  return JSON.parse(localStorage.getItem('customCategories') || '[]');
-}
-
-function saveCustomCategories(categories) {
-  localStorage.setItem('customCategories', JSON.stringify(categories));
-}
-
-function addCustomCategory(category) {
-  const customCategories = getCustomCategories();
-  if (!customCategories.includes(category) && !DEFAULT_CATEGORIES.includes(category)) {
-    customCategories.push(category);
-    saveCustomCategories(customCategories);
-    renderCategoryList();
-  }
-}
-
-function deleteCustomCategory(category) {
-  const customCategories = getCustomCategories();
-  const index = customCategories.indexOf(category);
-  if (index > -1) {
-    customCategories.splice(index, 1);
-    saveCustomCategories(customCategories);
-    renderCategoryList();
-    // Reset selection if deleted category was selected
-    if (document.getElementById('category').value === category) {
-      selectCategory('');
-    }
-  }
-}
-
-function deleteDefaultCategory(category) {
-  if (confirm(`Are you sure you want to delete the default category "${category}"? This action cannot be undone.`)) {
-    // Move the default category to custom categories first
-    const defaultCategories = JSON.parse(localStorage.getItem('defaultCategories') || JSON.stringify(DEFAULT_CATEGORIES));
-    const index = defaultCategories.indexOf(category);
-    if (index > -1) {
-      defaultCategories.splice(index, 1);
-      localStorage.setItem('defaultCategories', JSON.stringify(defaultCategories));
-    }
-    
-    // Then add it to custom categories
-    const customCategories = getCustomCategories();
-    if (!customCategories.includes(category)) {
-      customCategories.push(category);
-      saveCustomCategories(customCategories);
-    }
-    
-    renderCategoryList();
-    
-    // Reset selection if deleted category was selected
-    if (document.getElementById('category').value === category) {
-      selectCategory('');
-    }
-  }
-}
-
-function renderCategoryList() {
-  const categoryList = document.getElementById('categoryList');
-  const selectedValue = document.getElementById('category').value;
-  
-  // Get default categories from localStorage or use the constant
-  const defaultCategories = JSON.parse(localStorage.getItem('defaultCategories') || JSON.stringify(DEFAULT_CATEGORIES));
-  
-  let html = '';
-  
-  // Default categories section
-  if (defaultCategories.length > 0) {
-    html += `<div class="category-section-label">Default Categories</div>`;
-    defaultCategories.forEach(cat => {
-      const isSelected = selectedValue === cat;
-      html += `
-        <div class="category-item default ${isSelected ? 'selected' : ''}" data-value="${cat}">
-          <span>${cat}</span>
-          <span class="delete-category" onclick="event.stopPropagation(); deleteDefaultCategory('${cat}')">✕</span>
-        </div>
-      `;
-    });
-  }
-  
-  // Custom categories section
-  const customCategories = getCustomCategories();
-  if (customCategories.length > 0) {
-    html += `<div class="category-section-label">Custom Categories</div>`;
-    customCategories.forEach(cat => {
-      const isSelected = selectedValue === cat;
-      html += `
-        <div class="category-item custom ${isSelected ? 'selected' : ''}" data-value="${cat}">
-          <span>${cat}</span>
-          <span class="delete-category" onclick="event.stopPropagation(); deleteCustomCategory('${cat}')">✕</span>
-        </div>
-      `;
-    });
-  }
-  
-  // Add new category option
-  const isSelected = selectedValue === 'Others';
-  html += `
-    <div class="category-section-label">Add New</div>
-    <div class="category-item ${isSelected ? 'selected' : ''}" data-value="Others">
-      <span>+ Add New Category</span>
-    </div>
-  `;
-  
-  categoryList.innerHTML = html;
-  
-  // Add click listeners to category items
-  categoryList.querySelectorAll('.category-item').forEach(item => {
-    item.addEventListener('click', function(e) {
-      if (!e.target.classList.contains('delete-category')) {
-        selectCategory(this.dataset.value);
-      }
-    });
-  });
-}
-
-function toggleCategoryList(e) {
-  if (e) e.stopPropagation();
-  const categoryList = document.getElementById('categoryList');
-  const isOpen = categoryList.classList.contains('show');
-  
-  // Close all other dropdowns
-  document.querySelectorAll('.category-list').forEach(list => {
-    list.classList.remove('show');
-  });
-  
-  // Toggle this dropdown
-  if (!isOpen) {
-    categoryList.classList.add('show');
-  }
-}
-
-function closeCategoryList(e) {
-  const categorySelect = document.querySelector('.category-select');
-  if (!categorySelect.contains(e.target)) {
-    document.getElementById('categoryList').classList.remove('show');
-  }
-}
-
-function selectCategory(value) {
-  document.getElementById('category').value = value;
-  document.getElementById('selectedCategory').textContent = value || 'Select Category';
-  document.getElementById('categoryList').classList.remove('show');
-  handleCategoryChange(value);
-}
-
+// ================= Category Change Handler =================
 function handleCategoryChange(value) {
   const customCategoryDiv = document.getElementById('customCategoryDiv');
   const customCategoryInput = document.getElementById('customCategory');
   
-  console.log('Category changed to:', value); // Debug log
-  
   if (value === 'Others') {
-    console.log('Showing custom category input'); // Debug log
     customCategoryDiv.style.display = 'block';
     customCategoryInput.required = true;
-    // Focus on the input field
-    setTimeout(() => {
-      customCategoryInput.focus();
-    }, 100);
   } else {
-    console.log('Hiding custom category input'); // Debug log
     customCategoryDiv.style.display = 'none';
     customCategoryInput.required = false;
     customCategoryInput.value = '';
   }
 }
-
-// Initialize category list when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  renderCategoryList();
-  
-  // Add click listener to dropdown
-  document.getElementById('categoryDropdown').addEventListener('click', toggleCategoryList);
-  
-  // Add click outside listener
-  document.addEventListener('click', closeCategoryList);
-  
-  // Prevent clicks inside dropdown from closing it
-  document.getElementById('categoryList').addEventListener('click', function(e) {
-    e.stopPropagation();
-  });
-});
 </script>
 </body>
 </html>
