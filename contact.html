@@ -157,11 +157,7 @@ async function sendContactMessage() {
   try {
     const params = new URLSearchParams({ action: 'submitMessage', name, email, message });
 
-    const res = await fetch(CONFIG.ADMIN_API_URL, {
-      method: 'POST',
-      body: params
-    });
-
+    const res  = await fetch(CONFIG.ADMIN_API_URL + '?' + params.toString());
     const data = await res.json();
 
     if (data.success) {
