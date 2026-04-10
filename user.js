@@ -270,9 +270,8 @@ function startScanner() {
 
     stopScanner();
 
-    setTimeout(() => {
-      startScanner();
-    }, 1200);
+    const btn = document.getElementById("scanAgainBtn");
+    if (btn) btn.style.display = "block";
 
     try {
       const list = await fetch(CONFIG.API_URL + "?action=getAssets&nocache=" + Date.now())
@@ -303,6 +302,27 @@ function startScanner() {
     }, 1500);
   });
 }
+
+document.getElementById("scanAgainBtn")?.addEventListener("click", () => {
+  const btn = document.getElementById("scanAgainBtn");
+  if (btn) btn.style.display = "none";
+
+  // reset scan state
+  scannedAsset = "";
+  scanLock = false;
+
+  // reset UI
+  const assetEl = document.getElementById("assetID");
+  const statusEl = document.getElementById("status");
+
+  if (assetEl) assetEl.innerText = "";
+  if (statusEl) statusEl.innerText = "Ready to scan...";
+
+  updateActionButtons("");
+
+  // restart scanner
+  startScanner();
+});
 
 // ======================
 // UI UPDATE
