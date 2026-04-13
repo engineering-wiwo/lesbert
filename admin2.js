@@ -599,9 +599,20 @@ function _showCategoryTextInput() {
   backBtn.id          = "categoryBackBtn";
   backBtn.textContent = "\u2190 Back";
   backBtn.style.cssText =
-    "flex-shrink:0;font-size:12px;padding:6px 12px;cursor:pointer;" +
-    "white-space:nowrap;align-self:stretch;";
+    "flex-shrink:0;white-space:nowrap;align-self:stretch;cursor:pointer;" +
+    "font-size:13px;font-weight:700;padding:6px 16px;border-radius:8px;" +
+    "background:#e91e8c;color:#fff;border:2px solid #1a1a2e;" +
+    "box-shadow:0 2px 8px rgba(233,30,140,0.35);letter-spacing:0.02em;" +
+    "transition:background 0.15s,box-shadow 0.15s;";
   backBtn.addEventListener("click", _restoreCategoryDropdown);
+  backBtn.addEventListener("mouseover", () => {
+    backBtn.style.background   = "#c9176f";
+    backBtn.style.boxShadow    = "0 4px 14px rgba(233,30,140,0.5)";
+  });
+  backBtn.addEventListener("mouseout", () => {
+    backBtn.style.background   = "#e91e8c";
+    backBtn.style.boxShadow    = "0 2px 8px rgba(233,30,140,0.35)";
+  });
 
   wrapper.appendChild(input);
   wrapper.appendChild(backBtn);
