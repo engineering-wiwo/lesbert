@@ -578,28 +578,37 @@ function _showCategoryTextInput() {
   const select = document.getElementById("category");
   if (!select) return;
 
-  // Build the replacement input
-  const input = document.createElement("input");
-  input.type        = "text";
-  input.id          = "categoryTextInput";
-  input.placeholder = "Enter new category…";
-  input.required    = true;
-  // Mirror the select's className so it inherits the same CSS
-  input.className   = select.className;
+  // Wrapper — flex row, vertically centered, full width, responsive
+  const wrapper = document.createElement("div");
+  wrapper.id            = "categoryInputWrapper";
+  wrapper.style.cssText =
+    "display:flex;align-items:center;gap:8px;width:100%;flex-wrap:wrap;";
 
-  // Small inline "back" button so the user can return to the dropdown
+  // Text input — grows to fill available space, mirrors select's class
+  const input = document.createElement("input");
+  input.type          = "text";
+  input.id            = "categoryTextInput";
+  input.placeholder   = "Enter new category\u2026";
+  input.required      = true;
+  input.className     = select.className;
+  input.style.cssText = "flex:1;min-width:0;margin:0;";
+
+  // Back button — fixed width, vertically aligned with the input
   const backBtn = document.createElement("button");
-  backBtn.type      = "button";
-  backBtn.id        = "categoryBackBtn";
-  backBtn.textContent = "← Back";
+  backBtn.type        = "button";
+  backBtn.id          = "categoryBackBtn";
+  backBtn.textContent = "\u2190 Back";
   backBtn.style.cssText =
-    "margin-left:6px;font-size:12px;padding:4px 8px;cursor:pointer;";
+    "flex-shrink:0;font-size:12px;padding:6px 12px;cursor:pointer;" +
+    "white-space:nowrap;align-self:stretch;";
   backBtn.addEventListener("click", _restoreCategoryDropdown);
 
-  // Swap: hide the select, insert input + back-button after it
+  wrapper.appendChild(input);
+  wrapper.appendChild(backBtn);
+
+  // Swap: hide the select, insert the wrapper right after it
   select.style.display = "none";
-  select.insertAdjacentElement("afterend", backBtn);
-  select.insertAdjacentElement("afterend", input);
+  select.insertAdjacentElement("afterend", wrapper);
 
   input.focus();
 }
@@ -610,15 +619,13 @@ function _showCategoryTextInput() {
  */
 function _restoreCategoryDropdown() {
   const select  = document.getElementById("category");
-  const input   = document.getElementById("categoryTextInput");
-  const backBtn = document.getElementById("categoryBackBtn");
+  const wrapper = document.getElementById("categoryInputWrapper");
 
-  if (input)   input.remove();
-  if (backBtn) backBtn.remove();
+  if (wrapper) wrapper.remove();
 
   if (select) {
     select.style.display = "";
-    select.value = "";        // reset to placeholder
+    select.value = ""; // reset to placeholder
   }
 }
 
