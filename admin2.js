@@ -255,6 +255,66 @@ function initSecretKey() {
   });
 }
 
+// ─── CATEGORY HELPERS ────────────────────────────────────────
+
+/**
+ * Extracts unique categories from the assets array.
+ * Normalizes case: "laptop", "LAPTOP", "Laptop" → "Laptop" (only one entry).
+ * First occurrence wins for formatting.
+ */
+function extractCategories(assets) {
+  const map = new Map();
+
+  assets.forEach(a => {
+    if (!a.category) return;
+
+    const raw = a.category.trim();
+    const key = raw.toLowerCase(); // normalize for dedup
+
+    if (!map.has(key)) {
+      // Capitalize first letter, lowercase the rest
+      const formatted = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+      map.set(key, formatted);
+    }
+  });
+
+  return Array.from(map.values());
+}
+
+/**
+ * Rebuilds the category <select> with:
+ *   1. A blank placeholder
+ *   2. Hard-coded default options
+ *   3. Dynamic categories fetched from assets (sorted A–Z, no duplicates)
+ *   4. "Others" always last
+ */
+function updateCategoryDropdown(categories) {
+  const select = document.getElementById("category");
+  if (!select) return;
+
+  const defaultOptions = ["Keys", "Electronics", "Equipment", "Tools"];
+
+  // Sort dynamic categories A–Z
+  categories.sort((a, b) => a.localeCompare(b));
+
+  select.innerHTML = `<option value="">Select Category</option>`;
+
+  // Defaults first
+  defaultOptions.forEach(cat => {
+    select.innerHTML += `<option value="${cat}">${cat}</option>`;
+  });
+
+  // Dynamic categories — skip anything already in defaults (case-insensitive)
+  categories.forEach(cat => {
+    if (!defaultOptions.some(d => d.toLowerCase() === cat.toLowerCase())) {
+      select.innerHTML += `<option value="${cat}">${cat}</option>`;
+    }
+  });
+
+  // Always last
+  select.innerHTML += `<option value="Others">Others</option>`;
+}
+
 // ─── LOAD ASSETS ─────────────────────────────────────────────
 
 async function loadAssets() {
@@ -265,6 +325,11 @@ async function loadAssets() {
     if (!body) return;
 
     const assets = Array.isArray(data) ? data : [];
+
+    // Auto-populate the category dropdown from live asset data
+    const categories = extractCategories(assets);
+    updateCategoryDropdown(categories);
+
     let html = "", borrowed = 0, available = 0;
 
     assets.forEach((asset) => {
@@ -423,6 +488,17 @@ async function addAsset() {
       alert("Please enter a custom category name.");
       return;
     }
+
+    // Prevent duplicate categories (case-insensitive check against existing dropdown)
+    const normalized = customCategory.trim().toLowerCase();
+    const existing = Array.from(document.getElementById("category").options)
+      .map(opt => opt.value.toLowerCase());
+
+    if (existing.includes(normalized)) {
+      alert("Category already exists!");
+      return;
+    }
+
     finalCategory = customCategory;
   }
 
