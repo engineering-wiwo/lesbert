@@ -289,6 +289,47 @@
         </div>
       </div>
 
+       <!-- Asset Management -->
+      <div class="card animate-in" style="margin-top:24px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+          <h3 style="font-family:'Space Grotesk',sans-serif; font-size:20px;">Assets (Super Admin)</h3>
+          <input type="text" id="searchAssetsSuper" placeholder="Search assets..." onkeyup="searchAssetsSuper()" style="padding:8px 14px; font-size:14px;">
+        </div>
+
+        <form id="addSuperAssetForm" onsubmit="event.preventDefault(); addSuperAsset();" style="border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px;">
+          <h4 style="font-family:'Space Grotesk',sans-serif; margin-bottom:14px; font-size:15px;">Add Asset</h4>
+          <div class="grid-2" style="gap:12px; margin-bottom:12px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Asset Name</label>
+              <input type="text" id="superAssetName" required placeholder="">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Category</label>
+              <input type="text" id="superAssetCategory" required placeholder="">
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" style="font-size:14px; padding:10px 20px;">Add Asset</button>
+        </form>
+
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Holder</th>
+                <th>Transaction Date &amp; Time</th>
+                <th>QR</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="superAssetsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      
     </div>
   </div>
 </div><!-- container -->
@@ -378,7 +419,7 @@ async function sha256(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Default password hash: SHA-256 of "SuperAdmin@2024"
+// Default password hash: SHA-256 of "SuperAdmin"
 // Pre-computed: d3e2e7e6c1b9fc7dd9d0eae7efde14e27d34aab5b6a6e2e6f1b9c7d3e2e7e6c1
 // We compute it at runtime so the user can always reset by clearing localStorage
 const DEFAULT_PASS = "SuperAdmin";
