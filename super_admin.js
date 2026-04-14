@@ -368,7 +368,7 @@ async function saSaveEdit(id) {
 
   try {
     const config = await waitForConfig();
-    const result = await apiGet(config.API_URL, {
+    const result = await apiGet(ADMIN.API_URL, {
       action:   "editAssetSuper",
       assetID:  id,
       name,
@@ -423,7 +423,7 @@ async function saDoReturn(id) {
 
   try {
     const config = await waitForConfig();
-    const result = await apiGet(config.API_URL, {
+    const result = await apiGet(ADMIN.API_URL, {
       action:   "editAssetSuper",
       assetID:  id,
       status:   "Available",
@@ -473,7 +473,7 @@ async function saDoDeleteAsset(id) {
 
   try {
     const config = await waitForConfig();
-    const result = await apiGet(config.API_URL, {
+    const result = await apiGet(ADMIN.API_URL, {
       action:  "deleteAsset",
       assetID: id,
     });
