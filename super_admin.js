@@ -144,7 +144,7 @@ async function saLoadAssets() {
 
   try {
     const config = await waitForConfig();
-    const data   = await apiGet(config.API_URL, { action: "getAssets", t: Date.now() });
+    const data   = await apiGet(CONFIG.ADMIN_API_URL, { action: "getAssets", t: Date.now() });
     saAssets = Array.isArray(data) ? data : [];
 
     // Populate category dropdown in Add Asset panel with dynamic cats
@@ -534,7 +534,7 @@ async function saAddAsset() {
     const config  = await waitForConfig();
     const assetID = await saGenerateNextID(config);
 
-    const result = await apiGet(config.API_URL, {
+    const result = await apiGet(CONFIG.ADMIN_API_URL, {
       action:   "addAsset",
       assetID,
       name,
@@ -573,7 +573,7 @@ async function saAddAsset() {
 
 async function saGenerateNextID(config) {
   try {
-    const data  = await apiGet(config.API_URL, { action: "getAssets" });
+    const data  = await apiGet(CONFIG.ADMIN_API_URL, { action: "getAssets" });
     const items = Array.isArray(data) ? data : [];
     if (!items.length) return "AST-001";
     const max = Math.max(0, ...items.map(a => {
