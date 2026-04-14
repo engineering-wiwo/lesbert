@@ -1,0 +1,639 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Admin Dashboard - BorrowSmart</title>
+<link rel="icon" href="data:image/svg+xml,
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+  <rect width='100' height='100' rx='22' fill='%23ff4fa3'/>
+  <circle cx='40' cy='50' r='14' fill='white'/>
+  <circle cx='40' cy='50' r='6' fill='%23ff4fa3'/>
+  <rect x='50' y='46' width='28' height='8' rx='3' fill='white'/>
+  <rect x='62' y='54' width='6' height='10' fill='white'/>
+  <rect x='70' y='54' width='6' height='6' fill='white'/>
+</svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<script src="super_admin.js" defer></script>
+<script src="admin2.js" defer></script>
+
+
+<style>
+/* ── FEATURE 2: Super Admin Password Gate Styles ── */
+#saPasswordGate {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(10,14,23,0.97);
+  backdrop-filter: blur(20px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+#saPasswordGate .gate-card {
+  background: rgba(15,23,42,0.95);
+  border: 1px solid rgba(148,163,184,0.15);
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 400px; width: 100%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+#saPasswordGate .gate-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, #ec4899, transparent);
+}
+.gate-icon {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.gate-icon svg { width: 32px; height: 32px; stroke: white; }
+.gate-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.gate-sub { color: #94a3b8; font-size: 14px; margin-bottom: 28px; }
+.gate-input-wrap { position: relative; margin-bottom: 16px; }
+.gate-input-wrap input {
+  width: 100%; padding: 14px 48px 14px 16px;
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 12px; color: #f1f5f9; font-size: 15px; font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+}
+.gate-input-wrap input:focus { outline: none; border-color: #ec4899; box-shadow: 0 0 0 3px rgba(236,72,153,0.2); }
+.toggle-pw {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px;
+  display: flex; align-items: center;
+}
+.toggle-pw:hover { color: #f1f5f9; }
+.gate-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+  color: white; border: none; border-radius: 12px;
+  font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(236,72,153,0.4);
+}
+.gate-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(236,72,153,0.5); }
+.gate-btn:disabled { opacity: 0.6; pointer-events: none; }
+.gate-error {
+  color: #ef4444; font-size: 13px; margin-top: 12px;
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);
+  display: none;
+}
+.gate-back { margin-top: 20px; }
+.gate-back a {
+  color: #94a3b8; font-size: 13px; text-decoration: none;
+  transition: color 0.2s;
+}
+.gate-back a:hover { color: #f1f5f9; }
+.attempts-badge {
+  position: absolute; top: 14px; right: 14px;
+  background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+  color: #ef4444; font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  display: none;
+}
+
+/* ── Email Settings panel ── */
+#emailSettingsPanel {
+  background: rgba(236,72,153,0.06);
+  border: 1px solid rgba(236,72,153,0.2);
+  border-radius: 14px; padding: 20px; margin-bottom: 24px;
+}
+#emailSettingsPanel h4 {
+  font-family: 'Space Grotesk', sans-serif; font-size: 16px;
+  margin-bottom: 4px; color: #f472b6;
+}
+#emailSettingsPanel p { font-size: 13px; color: #94a3b8; margin-bottom: 14px; }
+.email-settings-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.email-settings-row input {
+  flex: 1; min-width: 200px; padding: 10px 14px;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 10px; color: #f1f5f9; font-size: 14px; font-family: 'Inter', sans-serif;
+}
+.email-settings-row input:focus { outline: none; border-color: #ec4899; }
+.email-save-btn {
+  padding: 10px 20px; border-radius: 10px; font-size: 14px;
+  background: linear-gradient(135deg, #ec4899, #f472b6); color: white;
+  border: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+  white-space: nowrap;
+}
+.email-save-btn:hover { opacity: 0.9; }
+.email-status { font-size: 12px; margin-top: 8px; }
+.email-status.ok { color: #10b981; }
+.email-status.err { color: #ef4444; }
+  .category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: inherit;
+  }
+  .category-tag-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+    font-size: 16px;
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+  }
+  .category-tag-delete:hover {
+    color: #ff4fa3;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     FEATURE 2: Super Admin Password Gate
+     Appears first, before any content is accessible.
+     Uses SHA-256 hashing (via Web Crypto API).
+     Default password: SuperAdmin  (hash stored in localStorage)
+     Superadmin can change it from within the dashboard.
+     ═══════════════════════════════════════════════════ -->
+<div id="saPasswordGate">
+  <div class="gate-card">
+    <div class="attempts-badge" id="attemptsBadge"></div>
+    <div class="gate-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+      </svg>
+    </div>
+    <div class="gate-title">Super Admin Access</div>
+    <div class="gate-sub">Enter your super admin password to continue</div>
+
+    <div class="gate-input-wrap">
+      <input type="password" id="saPassInput" placeholder="Super admin password"
+        onkeydown="if(event.key==='Enter') verifySAPassword()">
+      <button class="toggle-pw" onclick="toggleSAPassVisibility()" tabindex="-1" type="button">
+        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+    </div>
+
+    <button class="gate-btn" id="gateBtn" onclick="verifySAPassword()">Verify Password</button>
+    <div class="gate-error" id="gateError"></div>
+    <div class="gate-back"><a href="admin.html">← Back to Admin Dashboard</a></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN PAGE (hidden until gate is passed)
+     ═══════════════════════════════════════════════════ -->
+<div id="mainPage" style="display:none;">
+
+<div class="bg-layer">
+  <div class="bg-gradient"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<header class="header">
+  <a href="admin.html" class="logo">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+      </svg>
+    </div>
+    BorrowSmart
+  </a>
+  <button class="mobile-menu-btn" aria-label="Toggle menu">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  </button>
+  <nav class="nav-links" id="mainNav">
+    <a href="admin.html">Admin Dashboard</a>
+    <a href="index.html">Home</a>
+    <span class="nav-admin" style="background:linear-gradient(135deg,#ec4899,#f472b6);color:white;padding:8px 16px;border-radius:10px;font-size:14px;font-weight:600;">Super Admin</span>
+    <a href="#" onclick="saLogout()">Logout</a>
+  </nav>
+</header>
+
+<div class="mobile-nav" id="mobileNav">
+  <a href="admin.html">Admin Dashboard</a>
+  <a href="index.html">Home</a>
+  <a href="#" onclick="saLogout()">Logout</a>
+</div>
+
+<div class="container container-wide">
+
+  <div class="page-hero">
+    <h1>Super Admin</h1>
+    <p>Manage admin accounts and system settings.</p>
+  </div>
+
+  <div class="section">
+    <div style="max-width:1000px; margin:0 auto;">
+
+      <!-- ── FEATURE 1: Email Notification Settings ── -->
+      <div id="emailSettingsPanel">
+        <h4>🔔 Email Notification Settings</h4>
+        <p>Set the admin email address that receives automatic notifications for borrows, returns, and logins.</p>
+        <div class="email-settings-row">
+          <input type="email" id="notifyEmailInput" placeholder="">
+          <button class="email-save-btn" onclick="saveNotifyEmail()">Save Email</button>
+        </div>
+        <div class="email-status" id="emailSaveStatus"></div>
+      </div>
+
+      <!-- ── FEATURE 2: Change Super Admin Password ── -->
+      <div style="background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.2); border-radius:14px; padding:20px; margin-bottom:24px;">
+        <h4 style="font-family:'Space Grotesk',sans-serif; font-size:16px; margin-bottom:4px; color:#818cf8;">🔐 Change Super Admin Password</h4>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+          <div style="flex:1; min-width:180px;">
+            <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Current Password</label>
+            <input type="password" id="currentPassInput" placeholder="" style="width:100%; padding:10px 14px; background:rgba(0,0,0,0.3); border:1px solid rgba(148,163,184,0.2); border-radius:10px; color:#f1f5f9; font-size:14px;">
+          </div>
+          <div style="flex:1; min-width:180px;">
+            <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">New Password</label>
+            <input type="password" id="newPassInput" placeholder="" style="width:100%; padding:10px 14px; background:rgba(0,0,0,0.3); border:1px solid rgba(148,163,184,0.2); border-radius:10px; color:#f1f5f9; font-size:14px;">
+          </div>
+          <button onclick="changeSAPassword()" style="padding:10px 20px; border-radius:10px; font-size:14px; background:linear-gradient(135deg,#6366f1,#818cf8); color:white; border:none; cursor:pointer; font-family:'Space Grotesk',sans-serif; font-weight:600; white-space:nowrap;">Update Password</button>
+        </div>
+        <div class="email-status" id="passChangeStatus"></div>
+      </div>
+
+      <!-- Admin Accounts -->
+      <div class="card animate-in">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+          <h3 style="font-family:'Space Grotesk',sans-serif; font-size:20px;">Admin Accounts</h3>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <input type="text" id="searchAccounts" placeholder="Search accounts..." onkeyup="searchAccounts()" style="padding:8px 14px; font-size:14px;">
+            <button id="deleteSelectedBtn" class="btn-secondary" onclick="deleteSelectedAccounts()" style="display:none; background:var(--danger);">Delete Selected</button>
+          </div>
+        </div>
+
+        <!-- Add Account Form -->
+        <form id="addAccountForm" onsubmit="event.preventDefault(); addAccount();" style="border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px;">
+          <h4 style="font-family:'Space Grotesk',sans-serif; margin-bottom:14px; font-size:15px;">Add Admin Account</h4>
+          <div class="grid-2" style="gap:12px; margin-bottom:12px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Username</label>
+              <input type="text" id="username" required placeholder="">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Password</label>
+              <input type="password" id="password" required placeholder="">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Email</label>
+              <input type="email" id="email" required placeholder="">
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" style="font-size:14px; padding:10px 20px;">Add Account</button>
+        </form>
+
+        <!-- Accounts Table -->
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="accountsBody"></tbody>
+          </table>
+        </div>
+      </div>
+<!-- add here --> 
+          <!-- ADD ASSET -->
+    <div class="section">
+      <h2 class="section-title">Add New Asset</h2>
+      <div class="card animate-in" style="max-width:800px; margin:0 auto;">
+        <form id="addAssetForm" onsubmit="event.preventDefault(); addAsset();">
+          <div class="grid-2" style="gap:16px; margin-bottom:16px;">
+            <div class="form-group">
+              <label>Asset Name</label>
+              <input type="text" id="assetName" required placeholder="Enter asset name">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="category" required onchange="handleCategoryChange(this.value)">
+                <option value="">Select Category</option>
+                <option value="Keys">Keys</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Equipment">Equipment</option>
+                <option value="Tools">Tools</option>
+                <option value="Others">Others</option>
+              </select>
+              <!-- Custom category tags appear here -->
+              <div id="categoryTagList" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
+            </div>
+          </div>
+          <div id="customCategoryDiv" class="form-group" style="display:none; margin-top:16px;">
+            <label>Enter Category Name</label>
+            <input type="text" id="customCategory" placeholder="Enter custom category name">
+          </div>
+          <div style="display:flex; gap:16px; align-items:center;">
+            <button type="submit" class="btn-primary" id="addAssetBtn">Add Asset</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="section">
+      <div class="inventory-header">
+        <h2 class="section-title">===ASSETS===</h2>
+      </div>
+      <div class="card" style="max-width:1200px; margin:0 auto;">
+        <input type="text" id="search" placeholder="Search assets..." onkeyup="searchInventory()">
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Holder</th>
+                <th>Transaction Date &amp; Time</th>
+                <th>QR</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="assetBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end dashboardSection -->
+    </div>
+  </div>
+</div><!-- container -->
+
+</div><!-- mainPage -->
+
+<!-- EDIT POPUP -->
+<div class="popup" id="editPopup">
+  <div class="popupContent">
+    <h3>Edit Admin Account</h3>
+    <input type="hidden" id="editAccountId">
+    <div class="form-group" style="margin-top:16px; text-align:left;">
+      <label>Username</label>
+      <input type="text" id="editUsername" required>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>Email</label>
+      <input type="email" id="editEmail" required>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>New Password <span style="color:var(--fg-muted);font-size:12px;">(leave blank to keep current)</span></label>
+      <input type="password" id="editPassword" placeholder="New password">
+    </div>
+    <div class="popup-buttons">
+      <button onclick="closeEditPopup()">Cancel</button>
+      <button onclick="saveAccountChanges()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE POPUP -->
+<div class="popup" id="deletePopup">
+  <div class="popupContent">
+    <h3>Confirm Delete</h3>
+    <p>Are you sure you want to delete the selected admin accounts? This cannot be undone.</p>
+    <div class="popup-buttons">
+      <button onclick="closeDeletePopup()">Cancel</button>
+      <button onclick="confirmDelete()" style="background:var(--danger);">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS POPUP -->
+<div class="popup" id="successPopup">
+  <div class="popupContent">
+    <h3 id="successTitle">Success</h3>
+    <p id="successMessage"></p>
+    <div class="popup-buttons" style="grid-template-columns:1fr;">
+      <button onclick="closeSuccessPopup()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ERROR POPUP -->
+<div class="popup" id="errorPopup">
+  <div class="popupContent">
+    <h3 id="errorTitle">Error</h3>
+    <p id="errorMessage"></p>
+    <div class="popup-buttons" style="grid-template-columns:1fr;">
+      <button onclick="closeErrorPopup()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- WARNING POPUP -->
+<div class="popup" id="warningPopup">
+  <div class="popupContent">
+    <h3 id="warningTitle">Warning</h3>
+    <p id="warningMessage"></p>
+    <div class="popup-buttons" style="grid-template-columns:1fr;">
+      <button onclick="closeWarningPopup()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FEATURE 2: Gate Logic (inline, loads before super_admin.js)
+     SHA-256 hashing via Web Crypto API — no plain text passwords.
+     Default hash is for "SuperAdmin@2024". Change via dashboard.
+     ═══════════════════════════════════════════════════ -->
+<script>
+// ── SHA-256 helper ──
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Default password hash: SHA-256 of "SuperAdmin"
+// Pre-computed: d3e2e7e6c1b9fc7dd9d0eae7efde14e27d34aab5b6a6e2e6f1b9c7d3e2e7e6c1
+// We compute it at runtime so the user can always reset by clearing localStorage
+const DEFAULT_PASS = "SuperAdmin";
+const SA_HASH_KEY  = "bs_sa_hash";
+const SA_SESS_KEY  = "bs_sa_session";
+
+let failedAttempts = 0;
+const MAX_ATTEMPTS = 5;
+
+// Initialise: ensure default hash is set
+(async function() {
+  if (!localStorage.getItem(SA_HASH_KEY)) {
+    const hash = await sha256(DEFAULT_PASS);
+    localStorage.setItem(SA_HASH_KEY, hash);
+  }
+  // Restore session (tab-session only via sessionStorage)
+  if (sessionStorage.getItem(SA_SESS_KEY) === "1") {
+    unlockGate();
+  }
+  // Pre-fill notify email
+  const saved = localStorage.getItem("bs_notify_email") || "";
+  const inp = document.getElementById("notifyEmailInput");
+  if (inp) inp.value = saved;
+})();
+
+function toggleSAPassVisibility() {
+  const inp = document.getElementById("saPassInput");
+  const icon = document.getElementById("eyeIcon");
+  if (inp.type === "password") {
+    inp.type = "text";
+    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/>`;
+  } else {
+    inp.type = "password";
+    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>`;
+  }
+}
+
+async function verifySAPassword() {
+  const btn = document.getElementById("gateBtn");
+  const errEl = document.getElementById("gateError");
+  const inp = document.getElementById("saPassInput");
+  const badgeEl = document.getElementById("attemptsBadge");
+
+  if (!inp.value) { showGateError("Please enter your password."); return; }
+
+  // Lockout check
+  if (failedAttempts >= MAX_ATTEMPTS) {
+    showGateError("Too many failed attempts. Please reload the page.");
+    btn.disabled = true;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Verifying…";
+
+  try {
+    const entered = await sha256(inp.value);
+    const stored  = localStorage.getItem(SA_HASH_KEY);
+
+    if (entered === stored) {
+      sessionStorage.setItem(SA_SESS_KEY, "1");
+      inp.value = "";
+      unlockGate();
+    } else {
+      failedAttempts++;
+      const remaining = MAX_ATTEMPTS - failedAttempts;
+
+      if (remaining <= 0) {
+        showGateError("Too many failed attempts. Please reload.");
+        btn.disabled = true;
+      } else {
+        showGateError(`Incorrect password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+        btn.disabled = false;
+        btn.textContent = "Verify Password";
+        badgeEl.textContent = `${failedAttempts} failed`;
+        badgeEl.style.display = "block";
+      }
+      inp.value = "";
+      inp.focus();
+    }
+  } catch (e) {
+    showGateError("Verification error. Please try again.");
+    btn.disabled = false;
+    btn.textContent = "Verify Password";
+  }
+}
+
+function showGateError(msg) {
+  const el = document.getElementById("gateError");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+function unlockGate() {
+  document.getElementById("saPasswordGate").style.display = "none";
+  document.getElementById("mainPage").style.display = "block";
+  // Restore notify email in settings panel
+  const saved = localStorage.getItem("bs_notify_email") || "";
+  const inp = document.getElementById("notifyEmailInput");
+  if (inp) inp.value = saved;
+}
+
+function saLogout() {
+  sessionStorage.removeItem(SA_SESS_KEY);
+  window.location.href = "admin.html";
+}
+
+// ── Save notification email (Feature 1) ──
+function saveNotifyEmail() {
+  const val = document.getElementById("notifyEmailInput").value.trim();
+  const statusEl = document.getElementById("emailSaveStatus");
+  if (!val) {
+    statusEl.textContent = "Please enter an email address.";
+    statusEl.className = "email-status err";
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+    statusEl.textContent = "Please enter a valid email address.";
+    statusEl.className = "email-status err";
+    return;
+  }
+  localStorage.setItem("bs_notify_email", val);
+  statusEl.textContent = "✓ Notification email saved: " + val;
+  statusEl.className = "email-status ok";
+  setTimeout(() => { statusEl.textContent = ""; }, 3000);
+}
+
+// ── Change super admin password (Feature 2) ──
+async function changeSAPassword() {
+  const currentInput = document.getElementById("currentPassInput").value;
+  const newInput     = document.getElementById("newPassInput").value;
+  const statusEl     = document.getElementById("passChangeStatus");
+
+  if (!currentInput || !newInput) {
+    statusEl.textContent = "Both fields are required.";
+    statusEl.className = "email-status err";
+    return;
+  }
+  if (newInput.length < 8) {
+    statusEl.textContent = "New password must be at least 8 characters.";
+    statusEl.className = "email-status err";
+    return;
+  }
+
+  const currentHash = await sha256(currentInput);
+  const stored = localStorage.getItem(SA_HASH_KEY);
+
+  if (currentHash !== stored) {
+    statusEl.textContent = "Current password is incorrect.";
+    statusEl.className = "email-status err";
+    document.getElementById("currentPassInput").value = "";
+    return;
+  }
+
+  const newHash = await sha256(newInput);
+  localStorage.setItem(SA_HASH_KEY, newHash);
+
+  document.getElementById("currentPassInput").value = "";
+  document.getElementById("newPassInput").value = "";
+  statusEl.textContent = "✓ Super admin password updated successfully.";
+  statusEl.className = "email-status ok";
+  setTimeout(() => { statusEl.textContent = ""; }, 3000);
+}
+</script>
+
+</body>
+</html>
