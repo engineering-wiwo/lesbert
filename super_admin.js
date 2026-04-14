@@ -591,10 +591,12 @@ function saveEdit(btn, id) {
   setLoading(true);
 
   apiPost(CONFIG.API_URL, {
-    action:   "editAsset",
+    action:   "editAssetSuper",
     assetID:  id,
     name:     row.cells[1].innerText.trim(),
     category: row.cells[2].innerText.trim(),
+    status:   row.cells[3].innerText.trim(),
+    holder:   row.cells[4].innerText.trim(),
     location: "",
   })
     .then(() => loadAssets())
