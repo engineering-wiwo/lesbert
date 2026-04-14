@@ -1,7 +1,7 @@
 // =============================================================
 // super_admin.js  —  BorrowSmart Super Admin Frontend (Enhanced)
 //
-// Changes from original:
+// Changes from original :
 //   • Full assets table fetched from backend via getAssets
 //   • Inline row editing: Name, Category, Status, Holder
 //   • "Return Asset" button: sets status=Available, clears holder
