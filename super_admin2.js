@@ -10,6 +10,7 @@
 let accounts = [];
 let selectedAccounts = new Set();
 let assets = [];
+let savingRows = new Set(); // track rows currently being saved (prevents double-clicks)
 
 // ── Config wait ───────────────────────────────────────────────
 
@@ -31,10 +32,19 @@ function waitForConfig() {
 // ── Single API helper — GET only, no preflight ────────────────
 // All params go in the URL query string.
 // No custom headers = "simple request" = no CORS preflight.
+//
+// FIX: Increased timeout to 20s, added URL guard, never drops
+// empty strings (holder:"" must reach GAS to clear the field).
 
-async function apiGet(baseUrl, params = {}, timeoutMs = 15000) {
+async function apiGet(baseUrl, params = {}, timeoutMs = 20000) {
+  if (!baseUrl) throw new Error("API URL is not configured. Check config.js.");
+
   const url = new URL(baseUrl);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+  // Explicitly set every param — never skip empty strings.
+  // An empty "holder" param intentionally clears the field in GAS.
+  Object.entries(params).forEach(([k, v]) => {
+    url.searchParams.set(k, (v === null || v === undefined) ? "" : String(v));
+  });
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -45,13 +55,15 @@ async function apiGet(baseUrl, params = {}, timeoutMs = 15000) {
       signal: controller.signal,
     });
     clearTimeout(timer);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return safeParseJson(await res.text());
+    if (!res.ok) throw new Error("HTTP " + res.status + " — check GAS deployment.");
+    const text = await res.text();
+    return safeParseJson(text);
   } catch (err) {
     clearTimeout(timer);
     if (err.name === "AbortError")
-      throw new Error("Request timed out (" + timeoutMs / 1000 + "s)");
-    throw err;
+      throw new Error("Request timed out after " + (timeoutMs / 1000) + "s. Verify your GAS /exec URL.");
+    // Network/CORS errors land here — usually wrong URL or GAS not deployed as Anyone
+    throw new Error(err.message || "Network error. Check GAS deployment URL and access permissions.");
   }
 }
 
@@ -128,7 +140,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   loadAccounts();
   loadAssetsForSuperAdmin();
-  
+
   const mobileBtn = document.querySelector(".mobile-menu-btn");
   if (mobileBtn) {
     mobileBtn.addEventListener("click", function () {
@@ -138,8 +150,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 });
 
+// FIX: Always prefer ADMIN_API_URL — it's the confirmed working /exec URL.
+// CONFIG.API_URL may point to a different or broken deployment.
 function getAssetsApiUrl() {
-  return CONFIG.API_URL || CONFIG.ADMIN_API_URL;
+  return CONFIG.ADMIN_API_URL || CONFIG.API_URL;
 }
 
 // ── Load accounts ─────────────────────────────────────────────
@@ -166,24 +180,44 @@ async function loadAccounts() {
   }
 }
 
-// ── Load assets for super admin ──────────────────────────────
+// ── Load assets for super admin ───────────────────────────────
+// FIX: checks both table body and card container, handles GAS
+// returning a plain array (not {success, assets}), shows specific
+// errors for config problems vs backend errors vs network errors.
 
 async function loadAssetsForSuperAdmin() {
-  const body = document.getElementById("superAssetsBody");
-  if (!body) return;
+  const body          = document.getElementById("superAssetsBody");
+  const cardContainer = document.getElementById("superAssetsCards");
+  if (!body && !cardContainer) return;
 
   setLoading(true);
   try {
-    const result = await apiGet(getAssetsApiUrl(), {
+    const apiUrl = getAssetsApiUrl();
+    if (!apiUrl) {
+      showErrorPopup("Config Error", "No API URL found in config.js. Set CONFIG.ADMIN_API_URL to your GAS /exec URL.");
+      return;
+    }
+
+    const result = await apiGet(apiUrl, {
       action: "getAssets",
       t: Date.now(),
     });
 
-    assets = Array.isArray(result) ? result : [];
+    // GAS getAssets() returns a plain array, not { success, assets }
+    if (Array.isArray(result)) {
+      assets = result;
+    } else if (result && result.success === false) {
+      showErrorPopup("Backend Error", result.error || "GAS returned an error for getAssets.");
+      assets = [];
+    } else {
+      assets = [];
+    }
+
     displaySuperAssets();
+    renderAssetCards();
   } catch (err) {
     console.error("Error loading assets:", err);
-    showErrorPopup("Error", "Failed to load assets: " + err.message);
+    showErrorPopup("Connection Error", "Could not load assets: " + err.message);
   } finally {
     setLoading(false);
   }
@@ -235,7 +269,6 @@ async function addAccount() {
     setLoading(false);
   }
 }
-
 
 // ── Save edits ────────────────────────────────────────────────
 
@@ -343,7 +376,7 @@ async function confirmDelete() {
   }
 }
 
-// ── Display ───────────────────────────────────────────────────
+// ── Display accounts ──────────────────────────────────────────
 
 function displayAccounts() {
   const accountsBody = document.getElementById("accountsBody");
@@ -454,6 +487,8 @@ function searchAccounts() {
   });
 }
 
+// ── Display assets — desktop table ────────────────────────────
+
 function displaySuperAssets() {
   const body = document.getElementById("superAssetsBody");
   if (!body) return;
@@ -467,20 +502,21 @@ function displaySuperAssets() {
 
   assets.forEach((asset) => {
     const row = document.createElement("tr");
+    row.setAttribute("data-id", asset.id);
     const txFormatted = formatDate(resolveTransactionDate(asset));
-    const holder = asset.holder || "";
+    const statusClass = asset.status === "Available" ? "status-available" : "status-borrowed";
 
     row.innerHTML = `
       <td>${esc(asset.id)}</td>
       <td contenteditable="true" data-field="name">${esc(asset.name)}</td>
       <td contenteditable="true" data-field="category">${esc(asset.category || "")}</td>
       <td>
-        <select data-field="status">
-          <option value="Available" ${asset.status === "Available" ? "selected" : ""}>Available</option>
-          <option value="Borrowed" ${asset.status === "Borrowed" ? "selected" : ""}>Borrowed</option>
+        <select class="sa-status-select ${statusClass}" data-field="status">
+          <option value="Available" ${asset.status === "Available" ? "selected" : ""}>✅ Available</option>
+          <option value="Borrowed"  ${asset.status === "Borrowed"  ? "selected" : ""}>🔴 Borrowed</option>
         </select>
       </td>
-      <td data-field="holder">${esc(holder)}</td>
+      <td contenteditable="true" data-field="holder">${esc(asset.holder || "")}</td>
       <td><span style="font-size:12px;color:#cbd5e1">${txFormatted}</span></td>
       <td>${asset.qr
         ? `<img src="${esc(asset.qr)}" width="40" style="cursor:pointer"
@@ -488,39 +524,168 @@ function displaySuperAssets() {
         : "—"
       }</td>
       <td>
-        <button onclick="saveSuperAssetChanges('${esc(asset.id)}', this)">💾</button>
-        <button onclick="markSuperAssetAvailable('${esc(asset.id)}', this)">♻️</button>
+        <button onclick="saveSuperAssetChanges('${esc(asset.id)}', this)" title="Save changes">💾</button>
+        <button onclick="markSuperAssetAvailable('${esc(asset.id)}', this)" title="Mark Available"
+          ${asset.status === "Available" ? "disabled style='opacity:.4;cursor:not-allowed;'" : ""}>♻️</button>
         <button onclick="deleteSuperAsset('${esc(asset.id)}')">🗑️</button>
       </td>`;
+
+    // Live status colour update on select change
+    row.querySelector('.sa-status-select').addEventListener("change", function () {
+      this.className = "sa-status-select " + (this.value === "Available" ? "status-available" : "status-borrowed");
+      const returnBtn = row.querySelectorAll("td:last-child button")[1];
+      if (returnBtn) returnBtn.disabled = this.value === "Available";
+    });
+
     body.appendChild(row);
   });
 }
 
-async function saveSuperAssetChanges(assetId, btn) {
-  const row = btn.closest("tr");
-  if (!row) return;
+// ── Display assets — mobile cards ─────────────────────────────
+// NEW: renders a card-per-asset for screens ≤ 768px.
+// The HTML must include <div id="superAssetsCards"></div> below
+// the desktop table wrapper.
 
-  const name = row.querySelector('[data-field="name"]').textContent.trim();
-  const category = row.querySelector('[data-field="category"]').textContent.trim();
-  const status = row.querySelector('select[data-field="status"]').value;
+function renderAssetCards() {
+  const container = document.getElementById("superAssetsCards");
+  if (!container) return;
+  container.innerHTML = "";
 
-  if (!name || !category) {
-    showErrorPopup("Error", "Asset name and category are required.");
+  if (!assets.length) {
+    container.innerHTML = '<div class="sa-empty-card">No assets found</div>';
     return;
   }
 
-  const current = assets.find((a) => String(a.id) === String(assetId)) || {};
-  const holder = status === "Available" ? "" : (current.holder || "");
+  assets.forEach((asset) => {
+    const card = document.createElement("div");
+    card.className = "sa-asset-card";
+    card.setAttribute("data-id", asset.id);
+    const statusClass = asset.status === "Available" ? "status-available" : "status-borrowed";
+    const statusLabel = asset.status === "Available" ? "✅ Available" : "🔴 Borrowed";
 
+    card.innerHTML = `
+      <div class="sa-card-header">
+        <span class="sa-card-id">${esc(asset.id)}</span>
+        <span class="sa-card-badge ${statusClass}">${statusLabel}</span>
+      </div>
+      <div class="sa-card-field">
+        <label>Asset Name</label>
+        <input class="sa-card-input" type="text" value="${esc(asset.name)}"
+          data-field="name" placeholder="Asset name" />
+      </div>
+      <div class="sa-card-field">
+        <label>Category</label>
+        <input class="sa-card-input" type="text" value="${esc(asset.category || "")}"
+          data-field="category" placeholder="Category" />
+      </div>
+      <div class="sa-card-field">
+        <label>Status</label>
+        <select class="sa-card-select ${statusClass}" data-field="status">
+          <option value="Available" ${asset.status === "Available" ? "selected" : ""}>✅ Available</option>
+          <option value="Borrowed"  ${asset.status === "Borrowed"  ? "selected" : ""}>🔴 Borrowed</option>
+        </select>
+      </div>
+      <div class="sa-card-field">
+        <label>Current Holder</label>
+        <input class="sa-card-input" type="text" value="${esc(asset.holder || "")}"
+          data-field="holder" placeholder="None" />
+      </div>
+      <div class="sa-card-actions">
+        <button class="sa-btn-save"   onclick="saveSuperAssetCard('${esc(asset.id)}', this)">💾 Save</button>
+        <button class="sa-btn-return" onclick="returnSuperAssetCard('${esc(asset.id)}', this)"
+          ${asset.status === "Available" ? "disabled" : ""}>♻️ Return</button>
+        <button class="sa-btn-delete" onclick="deleteSuperAsset('${esc(asset.id)}')">🗑️ Delete</button>
+      </div>`;
+
+    // Live badge + select colour update
+    card.querySelector('select[data-field="status"]').addEventListener("change", function () {
+      const isAvail = this.value === "Available";
+      this.className = "sa-card-select " + (isAvail ? "status-available" : "status-borrowed");
+      const badge = card.querySelector(".sa-card-badge");
+      if (badge) {
+        badge.className = "sa-card-badge " + (isAvail ? "status-available" : "status-borrowed");
+        badge.textContent = isAvail ? "✅ Available" : "🔴 Borrowed";
+      }
+      const returnBtn = card.querySelector(".sa-btn-return");
+      if (returnBtn) returnBtn.disabled = isAvail;
+    });
+
+    container.appendChild(card);
+  });
+}
+
+// ── Search (filters both table rows and mobile cards) ─────────
+
+function searchAssetsSuper() {
+  const q = document.getElementById("searchAssetsSuper").value.toLowerCase();
+  document.querySelectorAll("#superAssetsBody tr").forEach((row) => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+  document.querySelectorAll("#superAssetsCards .sa-asset-card").forEach((card) => {
+    card.style.display = card.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+}
+
+// ── Helpers: read data from desktop row / mobile card ─────────
+
+function getRowData(row) {
+  return {
+    name:     (row.querySelector('[data-field="name"]')?.textContent     || "").trim(),
+    category: (row.querySelector('[data-field="category"]')?.textContent || "").trim(),
+    status:   (row.querySelector('[data-field="status"]')?.value         || "Available"),
+    holder:   (row.querySelector('[data-field="holder"]')?.textContent   || "").trim(),
+  };
+}
+
+function getCardData(card) {
+  return {
+    name:     (card.querySelector('[data-field="name"]')?.value     || "").trim(),
+    category: (card.querySelector('[data-field="category"]')?.value || "").trim(),
+    status:   (card.querySelector('[data-field="status"]')?.value   || "Available"),
+    holder:   (card.querySelector('[data-field="holder"]')?.value   || "").trim(),
+  };
+}
+
+function validateAssetData(data) {
+  if (!data.name)     return "Asset name cannot be empty.";
+  if (!data.category) return "Category cannot be empty.";
+  const valid = ["Available", "Borrowed"];
+  if (!valid.includes(data.status)) return "Invalid status value.";
+  return null;
+}
+
+// ── Loading state for individual buttons ──────────────────────
+
+function setBtnLoading(btn, loading, originalText) {
+  if (!btn) return;
+  btn.disabled    = loading;
+  btn.textContent = loading ? "⏳ Saving…" : originalText;
+}
+
+// ── Save asset — desktop row ──────────────────────────────────
+// FIX: was saveSuperAssetChanges; now also validates, uses
+// savingRows guard, and preserves original button text.
+
+async function saveSuperAssetChanges(assetId, btn) {
+  if (savingRows.has(assetId)) return;
+
+  const row = document.querySelector(`#superAssetsBody tr[data-id="${assetId}"]`);
+  if (!row) return;
+
+  const data = getRowData(row);
+  const err  = validateAssetData(data);
+  if (err) { showErrorPopup("Validation Error", err); return; }
+
+  if (!confirm(`Save changes to asset ${assetId}?`)) return;
+
+  savingRows.add(assetId);
+  setBtnLoading(btn, true, "💾");
   setLoading(true);
   try {
     const result = await apiGet(getAssetsApiUrl(), {
-      action: "editAssetSuper",
-      assetID: assetId,
-      name,
-      category,
-      status,
-      holder,
+      action:   "editAssetSuper",
+      assetID:  String(assetId),
+      ...data,
     });
 
     if (result.success) {
@@ -533,26 +698,163 @@ async function saveSuperAssetChanges(assetId, btn) {
     console.error("Error updating asset:", err);
     showErrorPopup("Error", "Failed to update asset: " + err.message);
   } finally {
+    savingRows.delete(assetId);
+    setBtnLoading(btn, false, "💾");
     setLoading(false);
   }
 }
+
+// ── Save asset — mobile card ──────────────────────────────────
+
+async function saveSuperAssetCard(assetId, btn) {
+  if (savingRows.has(assetId)) return;
+
+  const card = document.querySelector(`#superAssetsCards .sa-asset-card[data-id="${assetId}"]`);
+  if (!card) return;
+
+  const data = getCardData(card);
+  const err  = validateAssetData(data);
+  if (err) { showErrorPopup("Validation Error", err); return; }
+
+  if (!confirm(`Save changes to asset ${assetId}?`)) return;
+
+  savingRows.add(assetId);
+  setBtnLoading(btn, true, "💾 Save");
+  setLoading(true);
+  try {
+    const result = await apiGet(getAssetsApiUrl(), {
+      action:  "editAssetSuper",
+      assetID: String(assetId),
+      ...data,
+    });
+
+    if (result.success) {
+      await loadAssetsForSuperAdmin();
+      showSuccessPopup("Success", "Asset updated successfully.");
+    } else {
+      showErrorPopup("Error", result.error || "Failed to update asset.");
+    }
+  } catch (err) {
+    showErrorPopup("Error", "Failed to update asset: " + err.message);
+  } finally {
+    savingRows.delete(assetId);
+    setBtnLoading(btn, false, "💾 Save");
+    setLoading(false);
+  }
+}
+
+// ── Mark available — desktop (original helper kept) ──────────
+// FIX: now sends full asset data including exact id from local
+// array so GAS can always find the row, and explicitly sends
+// holder:"" to clear the field.
 
 function markSuperAssetAvailable(assetId, btn) {
   const row = btn.closest("tr");
   if (!row) return;
   const statusSelect = row.querySelector('select[data-field="status"]');
   if (statusSelect) statusSelect.value = "Available";
+  // Also clear the holder cell so getRowData picks it up as ""
+  const holderCell = row.querySelector('[data-field="holder"]');
+  if (holderCell) holderCell.textContent = "";
   saveSuperAssetChanges(assetId, btn);
 }
 
+// ── Return asset — desktop ────────────────────────────────────
+// FIX: sends full asset data using exact id from local array,
+// explicitly sets holder:"" to clear it in GAS.
+
+async function returnSuperAsset(assetId, btn) {
+  if (savingRows.has(assetId)) return;
+
+  const asset = assets.find((a) => String(a.id) === String(assetId));
+  if (!asset) {
+    showErrorPopup("Error", "Asset " + assetId + " not found in local data. Try refreshing.");
+    return;
+  }
+
+  const holder = asset.holder || "current holder";
+  if (!confirm(`Mark asset ${assetId} as Available and clear holder (${holder})?`)) return;
+
+  savingRows.add(assetId);
+  setBtnLoading(btn, true, "♻️");
+  setLoading(true);
+  try {
+    const result = await apiGet(getAssetsApiUrl(), {
+      action:   "editAssetSuper",
+      assetID:  String(asset.id),   // exact ID from fetched data
+      name:     asset.name     || "",
+      category: asset.category || "",
+      status:   "Available",
+      holder:   "",                  // explicitly clear holder
+    });
+
+    if (result.success) {
+      await loadAssetsForSuperAdmin();
+      showSuccessPopup("Returned", `Asset ${assetId} is now Available.`);
+    } else {
+      showErrorPopup("Error", result.error || "Failed to return asset.");
+    }
+  } catch (e) {
+    showErrorPopup("Error", "Return failed: " + e.message);
+  } finally {
+    savingRows.delete(assetId);
+    setBtnLoading(btn, false, "♻️");
+    setLoading(false);
+  }
+}
+
+// ── Return asset — mobile card ────────────────────────────────
+
+async function returnSuperAssetCard(assetId, btn) {
+  if (savingRows.has(assetId)) return;
+
+  const asset = assets.find((a) => String(a.id) === String(assetId));
+  if (!asset) {
+    showErrorPopup("Error", "Asset " + assetId + " not found in local data. Try refreshing.");
+    return;
+  }
+
+  const holder = asset.holder || "current holder";
+  if (!confirm(`Mark asset ${assetId} as Available and clear holder (${holder})?`)) return;
+
+  savingRows.add(assetId);
+  setBtnLoading(btn, true, "♻️ Return");
+  setLoading(true);
+  try {
+    const result = await apiGet(getAssetsApiUrl(), {
+      action:   "editAssetSuper",
+      assetID:  String(asset.id),
+      name:     asset.name     || "",
+      category: asset.category || "",
+      status:   "Available",
+      holder:   "",
+    });
+
+    if (result.success) {
+      await loadAssetsForSuperAdmin();
+      showSuccessPopup("Returned", `Asset ${assetId} is now Available.`);
+    } else {
+      showErrorPopup("Error", result.error || "Failed to return asset.");
+    }
+  } catch (e) {
+    showErrorPopup("Error", "Return failed: " + e.message);
+  } finally {
+    savingRows.delete(assetId);
+    setBtnLoading(btn, false, "♻️ Return");
+    setLoading(false);
+  }
+}
+
+// ── Delete asset ──────────────────────────────────────────────
+
 async function deleteSuperAsset(assetId) {
-  if (!confirm("Delete asset " + assetId + "?")) return;
+  if (!confirm("Delete asset " + assetId + "? This cannot be undone.")) return;
 
   setLoading(true);
   try {
     const result = await apiGet(getAssetsApiUrl(), {
-      action: "deleteAssetSuper",
-      assetID: assetId,
+      action:  "deleteAssetSuper",
+      assetID: String(assetId),
     });
 
     if (result.success) {
@@ -569,56 +871,13 @@ async function deleteSuperAsset(assetId) {
   }
 }
 
-function resolveTransactionDate(asset) {
-  return (
-    asset.transactionDateTime ||
-    asset.transactionAt ||
-    asset.lastTransactionAt ||
-    asset.lastUpdated ||
-    asset.updatedAt ||
-    asset.borrowedAt ||
-    asset.returnedAt ||
-    ""
-  );
-}
-
-function downloadQR(id, url) {
-  const img = new Image();
-  img.crossOrigin = "anonymous";
-
-  img.onload = () => {
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth || 200;
-      canvas.height = img.naturalHeight || 200;
-      canvas.getContext("2d").drawImage(img, 0, 0);
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          window.open(url, "_blank");
-          return;
-        }
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `${id}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(a.href);
-      }, "image/png");
-    } catch {
-      window.open(url, "_blank");
-    }
-  };
-
-  img.onerror = () => window.open(url, "_blank");
-  img.src = url;
-}
+// ── Add asset ─────────────────────────────────────────────────
 
 async function addSuperAsset() {
-  const nameInput = document.getElementById("superAssetName");
+  const nameInput     = document.getElementById("superAssetName");
   const categoryInput = document.getElementById("superAssetCategory");
-  const name = nameInput.value.trim();
-  const category = categoryInput.value.trim();
+  const name          = nameInput.value.trim();
+  const category      = categoryInput.value.trim();
 
   if (!name || !category) {
     showErrorPopup("Error", "Asset name and category are required.");
@@ -630,7 +889,7 @@ async function addSuperAsset() {
   setLoading(true);
   try {
     const result = await apiGet(getAssetsApiUrl(), {
-      action: "addAsset",
+      action:   "addAsset",
       assetID,
       name,
       category,
@@ -663,11 +922,48 @@ function generateSuperAssetId() {
   return "AST-" + String(max + 1).padStart(3, "0");
 }
 
-function searchAssetsSuper() {
-  const q = document.getElementById("searchAssetsSuper").value.toLowerCase();
-  document.querySelectorAll("#superAssetsBody tr").forEach((row) => {
-    row.style.display = row.textContent.toLowerCase().includes(q) ? "" : "none";
-  });
+// ── Utilities ─────────────────────────────────────────────────
+
+function resolveTransactionDate(asset) {
+  return (
+    asset.transactionDateTime ||
+    asset.transactionAt       ||
+    asset.lastTransactionAt   ||
+    asset.lastUpdated         ||
+    asset.updatedAt           ||
+    asset.borrowedAt          ||
+    asset.returnedAt          ||
+    ""
+  );
+}
+
+function downloadQR(id, url) {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+
+  img.onload = () => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width  = img.naturalWidth  || 200;
+      canvas.height = img.naturalHeight || 200;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      canvas.toBlob((blob) => {
+        if (!blob) { window.open(url, "_blank"); return; }
+        const a = document.createElement("a");
+        a.href     = URL.createObjectURL(blob);
+        a.download = `${id}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+      }, "image/png");
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
+  img.onerror = () => window.open(url, "_blank");
+  img.src = url;
 }
 
 function formatDate(value) {
@@ -678,11 +974,11 @@ function formatDate(value) {
 
 function esc(str) {
   return String(str == null ? "" : str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g,  "&amp;")
+    .replace(/</g,  "&lt;")
+    .replace(/>/g,  "&gt;")
+    .replace(/"/g,  "&quot;")
+    .replace(/'/g,  "&#39;");
 }
 
 // ── Popups ────────────────────────────────────────────────────
@@ -713,3 +1009,182 @@ function showWarningPopup(title, message) {
 function closeWarningPopup() {
   document.getElementById("warningPopup").classList.remove("active");
 }
+
+// ── Mobile card styles (injected once at runtime) ─────────────
+// Keeps all mobile card CSS self-contained in this JS file so
+// you don't have to touch style.css.  The desktop table is hidden
+// via .sa-table-wrap at ≤768px; #superAssetsCards is shown instead.
+
+(function injectMobileCardStyles() {
+  if (document.getElementById("saCardStyles")) return;
+  const style = document.createElement("style");
+  style.id = "saCardStyles";
+  style.textContent = `
+    /* ── Status colours (used by both table select and card badge) ── */
+    .status-available {
+      background: rgba(16,185,129,0.12);
+      border-color: rgba(16,185,129,0.4);
+      color: #10b981;
+    }
+    .status-borrowed {
+      background: rgba(239,68,68,0.12);
+      border-color: rgba(239,68,68,0.4);
+      color: #ef4444;
+    }
+
+    /* ── Desktop table status select ── */
+    .sa-status-select {
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1.5px solid;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .sa-status-select:focus { outline: none; box-shadow: 0 0 0 2px rgba(236,72,153,0.2); }
+
+    /* ── Mobile cards hidden on desktop ── */
+    #superAssetsCards { display: none; }
+
+    /* ── Card layout ── */
+    .sa-asset-card {
+      background: rgba(15,23,42,0.7);
+      border: 1px solid rgba(148,163,184,0.14);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+    .sa-asset-card:hover { border-color: rgba(236,72,153,0.3); }
+
+    .sa-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .sa-card-id {
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.05em;
+    }
+    .sa-card-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid;
+      letter-spacing: 0.03em;
+    }
+
+    .sa-card-field { margin-bottom: 12px; }
+    .sa-card-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 5px;
+    }
+    .sa-card-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 9px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-family: inherit;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .sa-card-input:focus {
+      outline: none;
+      border-color: #ec4899;
+      box-shadow: 0 0 0 2px rgba(236,72,153,0.18);
+    }
+    .sa-card-select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 9px;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 600;
+      border: 1.5px solid;
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .sa-card-select:focus { outline: none; }
+
+    .sa-card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .sa-card-actions button {
+      width: 100%;
+      padding: 11px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sa-card-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .sa-btn-save {
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      color: white;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+    }
+    .sa-btn-save:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(99,102,241,0.45); }
+
+    .sa-btn-return {
+      background: linear-gradient(135deg, #10b981, #34d399);
+      color: white;
+      box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+    }
+    .sa-btn-return:hover:not(:disabled) { transform: translateY(-1px); }
+
+    .sa-btn-delete {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3) !important;
+      color: #ef4444;
+    }
+    .sa-btn-delete:hover:not(:disabled) { background: rgba(239,68,68,0.22); }
+
+    .sa-empty-card {
+      text-align: center;
+      color: #94a3b8;
+      padding: 32px;
+      font-style: italic;
+      background: rgba(15,23,42,0.4);
+      border-radius: 14px;
+      border: 1px dashed rgba(148,163,184,0.2);
+    }
+
+    /* ── Responsive breakpoint ── */
+    @media (max-width: 768px) {
+      /* Hide desktop table, show cards */
+      .sa-table-wrap  { display: none !important; }
+      #superAssetsCards { display: block !important; }
+
+      /* Full-width search */
+      #searchAssetsSuper { width: 100% !important; box-sizing: border-box; }
+    }
+
+    @media (max-width: 480px) {
+      .sa-asset-card { padding: 14px; }
+      .sa-card-actions { gap: 6px; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
