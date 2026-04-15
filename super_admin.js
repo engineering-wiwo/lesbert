@@ -362,13 +362,16 @@ async function saSaveEdit(id) {
 
   try {
     const config = await waitForConfig();
+    const txTime = new Date().toISOString();
+
     const result = await apiGet(CONFIG.API_URL, {
-      action:   "editAssetSuper",
-      assetID:  id,
+      action:              "editAssetSuper",
+      assetID:             id,
       name,
-      category: cat,
+      category:            cat,
       status,
-      holder:   status === "Available" ? "" : holder,
+      holder:              status === "Available" ? "" : holder,
+      transactionDateTime: txTime,
     });
 
     if (result && (result.success === true || (result.message || "").toLowerCase().includes("success"))) {
@@ -379,11 +382,8 @@ async function saSaveEdit(id) {
         saAssets[idx].category = cat;
         saAssets[idx].status   = status;
         saAssets[idx].holder   = status === "Available" ? "" : holder;
-        saAssets[idx].transactionDateTime = new Date().toISOString(); // ← update cache too
+        saAssets[idx].transactionDateTime = txTime;
       }
-
-        // Persist transaction datetime to localStorage
-        recordTransactionDateTime(id, new Date().toISOString());
       
       saRenderAssets(saAssets);
       saUpdateStats(saAssets);
