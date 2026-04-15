@@ -589,20 +589,36 @@ function saDownloadQR(id, url) {
 
 // ─── Date helpers ─────────────────────────────────────────────
 
-function saResolveDate(asset) {
-  const log = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
+function resolveTransactionDateTime(asset) {
+  const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
+  const localEntry = transactionLog[asset.id];
+
   return (
-    asset.transactionDateTime || asset.transactionAt  || asset.lastTransactionAt ||
-    asset.lastUpdated         || asset.updatedAt       || asset.borrowedAt        ||
-    asset.returnedAt          || (log[asset.id] && log[asset.id].dateTime) || ""
+    asset.transactionDateTime ||
+    asset.transactionAt ||
+    asset.lastTransactionAt ||
+    asset.lastUpdated ||
+    asset.updatedAt ||
+    asset.borrowedAt ||
+    asset.returnedAt ||
+    localEntry?.dateTime ||
+    ""
   );
 }
 
-function saFormatDate(value) {
-  if (!value) return "—";
-  const d = new Date(value);
-  return isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+function formatTransactionDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
 }
+
+function recordTransactionDateTime(assetId, dateTime) {
+  if (!assetId || !dateTime) return;
+  const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
+  transactionLog[assetId] = { dateTime };
+  localStorage.setItem("assetTransactions", JSON.stringify(transactionLog));
+  }
 
 // ─── XSS escaper ─────────────────────────────────────────────
 
