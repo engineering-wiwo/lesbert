@@ -599,6 +599,7 @@ function saResolveDate(asset) {
   const localEntry = transactionLog[asset.id];
 
   return (
+    localEntry?.dateTime      ||
     asset.transactionDateTime ||
     asset.transactionAt       ||
     asset.lastTransactionAt   ||
@@ -606,7 +607,6 @@ function saResolveDate(asset) {
     asset.updatedAt           ||
     asset.borrowedAt          ||
     asset.returnedAt          ||
-    localEntry?.dateTime      ||
     ""
   );
 }
