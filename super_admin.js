@@ -382,8 +382,8 @@ async function saSaveEdit(id) {
         saAssets[idx].transactionDateTime = new Date().toISOString(); // ← update cache too
       }
 
-        // Persist transaction datetime to backend
-        await recordTransactionDateTime(id, new Date().toISOString());
+        // Persist transaction datetime to localStorage
+        recordTransactionDateTime(id, new Date().toISOString());
       
       saRenderAssets(saAssets);
       saUpdateStats(saAssets);
@@ -595,6 +595,9 @@ function saDownloadQR(id, url) {
 // ─── Date helpers ─────────────────────────────────────────────
 
 function saResolveDate(asset) {
+  const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
+  const localEntry = transactionLog[asset.id];
+
   return (
     asset.transactionDateTime ||
     asset.transactionAt       ||
@@ -603,6 +606,7 @@ function saResolveDate(asset) {
     asset.updatedAt           ||
     asset.borrowedAt          ||
     asset.returnedAt          ||
+    localEntry?.dateTime      ||
     ""
   );
 }
@@ -614,17 +618,11 @@ function saFormatDate(value) {
   return date.toLocaleString();
 }
 
-async function recordTransactionDateTime(assetId, dateTime) {
+function recordTransactionDateTime(assetId, dateTime) {
   if (!assetId || !dateTime) return;
-  try {
-    await apiGet(CONFIG.API_URL, {
-      action:              "editAssetSuper",
-      assetID:             assetId,
-      transactionDateTime: dateTime,
-    });
-  } catch (err) {
-    console.error("[recordTransactionDateTime]", err);
-  }
+  const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
+  transactionLog[assetId] = { dateTime };
+  localStorage.setItem("assetTransactions", JSON.stringify(transactionLog));
 }
 
 // ─── XSS escaper ─────────────────────────────────────────────
