@@ -266,7 +266,7 @@ function saStartEdit(id) {
     `<option value="${esc(c)}" ${c === asset.category ? "selected" : ""}>${esc(c)}</option>`
   ).join("");
 
-  const statusOptions = ["Available", "Borrowed", "Maintenance"]
+  const statusOptions = ["Available", "Borrowed"]
     .map(s => `<option value="${esc(s)}" ${s === asset.status ? "selected" : ""}>${esc(s)}</option>`)
     .join("");
 
@@ -379,7 +379,12 @@ async function saSaveEdit(id) {
         saAssets[idx].category = cat;
         saAssets[idx].status   = status;
         saAssets[idx].holder   = status === "Available" ? "" : holder;
+        saAssets[idx].transactionDateTime = new Date().toISOString(); // ← update cache too
       }
+
+        // Persist transaction datetime to backend
+        await recordTransactionDateTime(id, new Date().toISOString());
+      
       saRenderAssets(saAssets);
       saUpdateStats(saAssets);
     } else {
@@ -589,36 +594,38 @@ function saDownloadQR(id, url) {
 
 // ─── Date helpers ─────────────────────────────────────────────
 
-function resolveTransactionDateTime(asset) {
-  const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
-  const localEntry = transactionLog[asset.id];
-
+function saResolveDate(asset) {
   return (
     asset.transactionDateTime ||
-    asset.transactionAt ||
-    asset.lastTransactionAt ||
-    asset.lastUpdated ||
-    asset.updatedAt ||
-    asset.borrowedAt ||
-    asset.returnedAt ||
-    localEntry?.dateTime ||
+    asset.transactionAt       ||
+    asset.lastTransactionAt   ||
+    asset.lastUpdated         ||
+    asset.updatedAt           ||
+    asset.borrowedAt          ||
+    asset.returnedAt          ||
     ""
   );
 }
 
-function formatTransactionDateTime(value) {
+function saFormatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
 }
 
-function recordTransactionDateTime(assetId, dateTime) {
+async function recordTransactionDateTime(assetId, dateTime) {
   if (!assetId || !dateTime) return;
-  const transactionLog = JSON.parse(localStorage.getItem("assetTransactions") || "{}");
-  transactionLog[assetId] = { dateTime };
-  localStorage.setItem("assetTransactions", JSON.stringify(transactionLog));
+  try {
+    await apiGet(CONFIG.API_URL, {
+      action:              "editAssetSuper",
+      assetID:             assetId,
+      transactionDateTime: dateTime,
+    });
+  } catch (err) {
+    console.error("[recordTransactionDateTime]", err);
   }
+}
 
 // ─── XSS escaper ─────────────────────────────────────────────
 
