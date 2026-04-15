@@ -219,12 +219,6 @@ function saRenderAssets(assets) {
           <button class="btn-act btn-edit" onclick="saStartEdit('${esc(asset.id)}')" id="editBtn_${esc(asset.id)}">
             ✏️ Edit
           </button>
-          ${isBorrowed
-            ? `<button class="btn-act btn-return" onclick="saConfirmReturn('${esc(asset.id)}')" id="returnBtn_${esc(asset.id)}">
-                ↩ Return
-               </button>`
-            : ""
-          }
           <button class="btn-act btn-delete" onclick="saConfirmDelete('${esc(asset.id)}')">
             🗑
           </button>
@@ -398,55 +392,6 @@ async function saSaveEdit(id) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ASSETS — RETURN (clear holder, set Available)
-// ═══════════════════════════════════════════════════════════════
-
-function saConfirmReturn(id) {
-  const asset = saAssets.find(a => String(a.id) === String(id));
-  const label = asset ? `"${asset.name}"` : `asset ${id}`;
-
-  showConfirm(
-    "warn",
-    "Return Asset",
-    `Mark ${label} as Available and clear the current holder?`,
-    "Return",
-    async () => {
-      await saDoReturn(id);
-    }
-  );
-}
-
-async function saDoReturn(id) {
-  const row = document.getElementById("saRow_" + id);
-  if (row) row.classList.add("saving");
-
-  try {
-    const config = await waitForConfig();
-    const result = await apiGet(CONFIG.API_URL, {
-      action:   "editAssetSuper",
-      assetID:  id,
-      status:   "Available",
-      holder:   "",
-    });
-
-    if (result && (result.success === true || (result.message || "").toLowerCase().includes("success"))) {
-      const idx = saAssets.findIndex(a => String(a.id) === String(id));
-      if (idx !== -1) {
-        saAssets[idx].status = "Available";
-        saAssets[idx].holder = "";
-      }
-      saRenderAssets(saAssets);
-      saUpdateStats(saAssets);
-    } else {
-      if (row) row.classList.remove("saving");
-      showErrorPopup("Return Failed", result?.error || "Could not update asset.");
-    }
-  } catch (err) {
-    if (row) row.classList.remove("saving");
-    showErrorPopup("Return Failed", err.message);
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════
 // ASSETS — DELETE
