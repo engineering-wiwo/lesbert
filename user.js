@@ -637,7 +637,6 @@ async function sendAction(action) {
     }
 
     loadUserAssets();
-    restartScanner();
 
   } catch (err) {
     document.getElementById("status").innerText = "Error processing request";
