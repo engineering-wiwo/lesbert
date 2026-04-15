@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   loadAccounts();
-  saLoadAssets();
+  saLoads();
 
   const mobileBtn = document.querySelector(".mobile-menu-btn");
   if (mobileBtn) {
@@ -131,10 +131,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// ASSETS — LOAD & RENDER
+// S — LOAD & RENDER
 // ═══════════════════════════════════════════════════════════════
 
-async function saLoadAssets() {
+async function saLoads() {
   const body = document.getElementById("saAssetsBody");
   if (!body) return;
 
@@ -368,7 +368,7 @@ async function saSaveEdit(id) {
 
   try {
     const config = await waitForConfig();
-    const result = await apiGet(ADMIN.API_URL, {
+    const result = await apiGet(API_URL, {
       action:   "editAssetSuper",
       assetID:  id,
       name,
@@ -423,7 +423,7 @@ async function saDoReturn(id) {
 
   try {
     const config = await waitForConfig();
-    const result = await apiGet(ADMIN.API_URL, {
+    const result = await apiGet(API_URL, {
       action:   "editAssetSuper",
       assetID:  id,
       status:   "Available",
@@ -473,7 +473,7 @@ async function saDoDeleteAsset(id) {
 
   try {
     const config = await waitForConfig();
-    const result = await apiGet(ADMIN.API_URL, {
+    const result = await apiGet(API_URL, {
       action:  "deleteAsset",
       assetID: id,
     });
